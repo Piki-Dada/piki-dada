@@ -1,0 +1,48 @@
+export enum UserRole {
+  PASSENGER = "PASSENGER",
+  DRIVER = "DRIVER",
+  ADMIN = "ADMIN",
+}
+
+export enum RideType {
+  ECONOMY = "ECONOMY",
+  COMFORT = "COMFORT",
+  BODA = "BODA",
+}
+
+export enum TripStatus {
+  REQUESTED = "REQUESTED",
+  SEARCHING = "SEARCHING",
+  ACCEPTED = "ACCEPTED",
+  ARRIVED = "ARRIVED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum PaymentMethod {
+  CASH = "CASH",
+  STRIPE = "STRIPE",
+  FLUTTERWAVE = "FLUTTERWAVE",
+  WALLET = "WALLET",
+}
+
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+}
+
+export enum DriverApprovalStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum DocumentType {
+  NATIONAL_ID = "NATIONAL_ID",
+  DRIVING_PERMIT = "DRIVING_PERMIT",
+  VEHICLE_REGISTRATION = "VEHICLE_REGISTRATION",
+  INSURANCE = "INSURANCE",
+}

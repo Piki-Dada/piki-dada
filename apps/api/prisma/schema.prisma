@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum RideType {
+  ECONOMY
+  COMFORT
+  BODA
+}
+
+enum TripStatus {
+  REQUESTED
+  SEARCHING
+  ACCEPTED
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  STRIPE
+  FLUTTERWAVE
+  WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DriverApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DocumentType {
+  NATIONAL_ID
+  DRIVING_PERMIT
+  VEHICLE_REGISTRATION
+  INSURANCE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  googleId     String?  @unique
+  name         String
+  phone        String?
+  photoUrl     String?
+  fcmToken     String?
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  driverProfile    Driver?
+  savedPlaces      SavedPlace[]
+  passengerTrips   Trip[]            @relation("PassengerTrips")
+  emergencyContact EmergencyContact[]
+  wallet           Wallet?
+  ratingsGiven     Rating[]          @relation("RatingsGiven")
+  ratingsReceived  Rating[]          @relation("RatingsReceived")
+  notifications    Notification[]
+  refreshTokens    RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model SavedPlace {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  address   String
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+}
+
+model EmergencyContact {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
+  phone  String
+}
+
+model Driver {
+  id               String                @id @default(cuid())
+  userId           String                @unique
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvalStatus   DriverApprovalStatus  @default(PENDING)
+  isOnline         Boolean               @default(false)
+  currentLat       Float?
+  currentLng       Float?
+  rating           Float                 @default(5.0)
+  totalTrips       Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  vehicle   Vehicle?
+  documents Document[]
+  trips     Trip[]     @relation("DriverTrips")
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  driverId     String   @unique
+  driver       Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  make         String
+  model        String
+  color        String
+  plateNumber  String   @unique
+  rideType     RideType
+  photoUrl     String?
+  createdAt    DateTime @default(now())
+}
+
+model Document {
+  id        String       @id @default(cuid())
+  driverId  String
+  driver    Driver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  type      DocumentType
+  fileUrl   String
+  uploadedAt DateTime    @default(now())
+}
+
+model Trip {
+  id                  String        @id @default(cuid())
+  passengerId         String
+  passenger           User          @relation("PassengerTrips", fields: [passengerId], references: [id])
+  driverId            String?
+  driver              Driver?       @relation("DriverTrips", fields: [driverId], references: [id])
+  status              TripStatus    @default(REQUESTED)
+  rideType            RideType
+  pickupAddress       String
+  pickupLat           Float
+  pickupLng           Float
+  destinationAddress  String
+  destinationLat      Float
+  destinationLng      Float
+  distanceKm          Float?
+  durationMin         Float?
+  fare                Float?
+  currency            String        @default("UGX")
+  couponCode          String?
+  paymentMethod       PaymentMethod
+  acceptedAt          DateTime?
+  arrivedAt           DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  payment Payment?
+  ratings Rating[]
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  tripId        String        @unique
+  trip          Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  amount        Float
+  currency      String        @default("UGX")
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  providerRef   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Float    @default(0)
+  currency  String   @default("UGX")
+  updatedAt DateTime @updatedAt
+
+  ledgerEntries WalletLedgerEntry[]
+}
+
+model WalletLedgerEntry {
+  id        String   @id @default(cuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount    Float
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model Rating {
+  id         String   @id @default(cuid())
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  fromUserId String
+  fromUser   User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User     @relation("RatingsReceived", fields: [toUserId], references: [id])
+  stars      Int
+  comment    String?
+  createdAt  DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  discountAmount Float?
+  discountPercent Float?
+  maxUses        Int?
+  usedCount      Int       @default(0)
+  expiresAt      DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+}
+
+model PricingRule {
+  id          String   @id @default(cuid())
+  rideType    RideType @unique
+  baseFare    Float
+  perKm       Float
+  perMinute   Float
+  currency    String   @default("UGX")
+  updatedAt   DateTime @updatedAt
+}
