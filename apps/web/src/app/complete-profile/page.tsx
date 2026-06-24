@@ -53,7 +53,7 @@ export default function CompleteProfilePage() {
                 id="phone"
                 type="tel"
                 required
-                pattern="^\+?[0-9 ()-]{7,20}$"
+                pattern="^\+?[0-9\s\(\)\-]{7,20}$"
                 title="Enter a valid phone number"
                 placeholder="07XXXXXXXX"
                 value={phone}

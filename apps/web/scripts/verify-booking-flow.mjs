@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const email = `pwtest_${Date.now()}@test.com`;
 
 const browser = await chromium.launch();
@@ -10,6 +10,12 @@ page.on("console", (msg) => {
   if (msg.type() === "error") consoleErrors.push(msg.text());
 });
 page.on("pageerror", (err) => consoleErrors.push(`pageerror: ${err.message}`));
+page.on("requestfailed", (req) => consoleErrors.push(`requestfailed: ${req.url()} ${req.failure()?.errorText}`));
+page.on("response", (res) => {
+  if (res.url().includes("/auth/register")) {
+    res.text().then((body) => consoleErrors.push(`register response: ${res.status()} ${body}`)).catch(() => undefined);
+  }
+});
 page.on("dialog", async (dialog) => {
   consoleErrors.push(`dialog: ${dialog.type()} ${dialog.message()}`);
   await dialog.dismiss().catch(() => undefined);
