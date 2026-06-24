@@ -2,14 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 @Injectable()
 export class EmailService {
   private resend: Resend;
   private fromAddress: string;
+  private webUrl: string;
 
   constructor(private config: ConfigService) {
     this.resend = new Resend(this.config.getOrThrow<string>('RESEND_API_KEY'));
     this.fromAddress = this.config.getOrThrow<string>('RESEND_FROM_EMAIL');
+    this.webUrl = this.config.getOrThrow<string>('CORS_ORIGIN');
   }
 
   async send(to: string, subject: string, html: string) {
@@ -24,7 +34,7 @@ export class EmailService {
     return this.send(
       to,
       'Welcome to Piki Dada',
-      `<p>Hi ${name},</p><p>Welcome to Piki Dada! Your account is ready.</p>`,
+      `<p>Hi ${escapeHtml(name)},</p><p>Welcome to Piki Dada! Your account is ready.</p>`,
     );
   }
 
@@ -33,6 +43,24 @@ export class EmailService {
       to,
       'Your Piki Dada trip receipt',
       `<p>Your trip is complete.</p><p><strong>${fare} ${currency}</strong></p><p>Trip ID: ${tripId}</p>`,
+    );
+  }
+
+  sendVerificationEmail(to: string, token: string) {
+    const link = `${this.webUrl}/verify-email?token=${token}`;
+    return this.send(
+      to,
+      'Verify your Piki Dada email',
+      `<p>Confirm this is your email address by clicking the link below.</p><p><a href="${link}">${link}</a></p><p>This link expires in 24 hours.</p>`,
+    );
+  }
+
+  sendPasswordResetEmail(to: string, token: string) {
+    const link = `${this.webUrl}/reset-password?token=${token}`;
+    return this.send(
+      to,
+      'Reset your Piki Dada password',
+      `<p>We received a request to reset your password.</p><p><a href="${link}">${link}</a></p><p>This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`,
     );
   }
 }

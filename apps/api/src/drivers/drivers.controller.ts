@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  FileTypeValidator,
   Get,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   Patch,
   Post,
   UploadedFile,
@@ -21,6 +24,7 @@ import { UploadDocumentDto } from './dto/upload-document.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
 import { UploadsService } from '../uploads/uploads.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('drivers')
@@ -28,6 +32,7 @@ export class DriversController {
   constructor(
     private driversService: DriversService,
     private uploadsService: UploadsService,
+    private auditLog: AuditLogService,
   ) {}
 
   @Roles(UserRole.DRIVER)
@@ -44,11 +49,19 @@ export class DriversController {
 
   @Roles(UserRole.DRIVER)
   @Post('me/documents')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   async uploadDocument(
     @CurrentUser() user: { id: string },
     @Body() dto: UploadDocumentDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^(image\/(jpeg|png|webp)|application\/pdf)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
   ) {
     const fileUrl = await this.uploadsService.uploadBuffer(file.buffer, 'driver-documents');
     return this.driversService.addDocument(user.id, dto.type, fileUrl);
@@ -74,13 +87,17 @@ export class DriversController {
 
   @Roles(UserRole.ADMIN)
   @Patch(':id/approve')
-  approve(@Param('id') id: string) {
-    return this.driversService.setApprovalStatus(id, 'APPROVED');
+  async approve(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    const result = await this.driversService.setApprovalStatus(id, 'APPROVED');
+    this.auditLog.log(admin.id, 'driver.approve', { type: 'Driver', id });
+    return result;
   }
 
   @Roles(UserRole.ADMIN)
   @Patch(':id/reject')
-  reject(@Param('id') id: string) {
-    return this.driversService.setApprovalStatus(id, 'REJECTED');
+  async reject(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    const result = await this.driversService.setApprovalStatus(id, 'REJECTED');
+    this.auditLog.log(admin.id, 'driver.reject', { type: 'Driver', id });
+    return result;
   }
 }

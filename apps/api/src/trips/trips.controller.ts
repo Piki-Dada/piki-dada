@@ -52,7 +52,7 @@ export class TripsController {
   }
 
   @Get(':id')
-  getTrip(@Param('id') id: string) {
-    return this.tripsService.getTrip(id);
+  getTrip(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.tripsService.getTrip(user.id, id);
   }
 }

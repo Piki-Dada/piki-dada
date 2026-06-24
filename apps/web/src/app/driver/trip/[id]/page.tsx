@@ -84,6 +84,14 @@ export default function DriverTripPage() {
             {trip.fare?.toLocaleString()} {trip.currency}
           </p>
 
+          {trip.passenger?.phone && (
+            <a href={`tel:${trip.passenger.phone}`} className="inline-block">
+              <Button size="sm" variant="outline">
+                Call passenger
+              </Button>
+            </a>
+          )}
+
           <a href={navUrl} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" className="w-full">
               Open navigation
@@ -96,8 +104,14 @@ export default function DriverTripPage() {
             </Button>
           )}
 
-          {trip.status === "COMPLETED" && (
-            <p className="text-center text-green-600">Trip completed!</p>
+          {trip.status === "COMPLETED" && trip.payment?.status !== "PAID" && (
+            <p className="text-center text-green-600">
+              Trip completed! Earnings are added to your wallet once the passenger's payment is
+              confirmed.
+            </p>
+          )}
+          {trip.status === "COMPLETED" && trip.payment?.status === "PAID" && (
+            <p className="text-center text-green-600">Trip completed and paid!</p>
           )}
         </CardContent>
       </Card>

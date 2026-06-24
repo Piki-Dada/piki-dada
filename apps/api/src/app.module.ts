@@ -13,11 +13,17 @@ import { TripsModule } from './trips/trips.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    // skipIf disables rate limiting under Jest (NODE_ENV=test is set automatically by Jest) —
+    // e2e tests deliberately exercise high-volume flows (e.g. account lockout after repeated
+    // logins) that would otherwise collide with these limits. Real traffic is never affected.
+    ThrottlerModule.forRoot([
+      { ttl: 60000, limit: 100, skipIf: () => process.env.NODE_ENV === 'test' },
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -27,6 +33,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AdminModule,
     PaymentsModule,
     NotificationsModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [

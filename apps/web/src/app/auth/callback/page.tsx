@@ -13,15 +13,25 @@ function AuthCallbackInner() {
 
   useEffect(() => {
     const accessToken = params.get("accessToken");
-    const refreshToken = params.get("refreshToken");
-    if (!accessToken || !refreshToken) {
+    if (!accessToken) {
       router.push("/login");
       return;
     }
-    useAuthStore.setState({ accessToken, refreshToken });
-    apiFetch<{ id: string; email: string; role: "PASSENGER" | "DRIVER" | "ADMIN" }>("/users/me")
+    // The refresh token was already set as an httpOnly cookie by the backend redirect —
+    // it never appears in this URL.
+    useAuthStore.setState({ accessToken });
+    apiFetch<{
+      id: string;
+      email: string;
+      role: "PASSENGER" | "DRIVER" | "ADMIN";
+      phone?: string | null;
+    }>("/users/me")
       .then((user) => {
-        setSession(accessToken, refreshToken, user);
+        setSession(accessToken, user);
+        if (!user.phone) {
+          router.push("/complete-profile");
+          return;
+        }
         redirectForRole(user.role, router);
       })
       .catch(() => router.push("/login"));

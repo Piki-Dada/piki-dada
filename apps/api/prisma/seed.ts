@@ -1,8 +1,32 @@
-import { PrismaClient, RideType } from '@prisma/client';
+import { PrismaClient, RideType, UserRole } from '@prisma/client';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // ADMIN accounts can't be self-registered through the public API (by design — see
+  // RegisterDto), so the only way to bootstrap the first admin is here, via env vars.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const passwordHash = await argon2.hash(adminPassword, { type: argon2.argon2id });
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {},
+      create: {
+        email: adminEmail,
+        passwordHash,
+        name: 'Admin',
+        role: UserRole.ADMIN,
+        emailVerifiedAt: new Date(),
+        wallet: { create: { balance: 0 } },
+      },
+    });
+    console.log(`Seed: admin account ensured for ${adminEmail}.`);
+  } else {
+    console.log('Seed: SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD not set, skipping admin bootstrap.');
+  }
+
   await prisma.pricingRule.upsert({
     where: { rideType: RideType.BODA },
     update: {},

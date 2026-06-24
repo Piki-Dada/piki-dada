@@ -23,6 +23,7 @@ export default function DriverDashboardPage() {
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [toggling, setToggling] = useState(false);
   const [incoming, setIncoming] = useState<IncomingRequest | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
   const loadProfile = useCallback(() => {
@@ -81,8 +82,13 @@ export default function DriverDashboardPage() {
 
   async function handleAccept() {
     if (!incoming) return;
-    await apiFetch(`/trips/${incoming.tripId}/accept`, { method: "PATCH" });
-    router.push(`/driver/trip/${incoming.tripId}`);
+    try {
+      await apiFetch(`/trips/${incoming.tripId}/accept`, { method: "PATCH" });
+      router.push(`/driver/trip/${incoming.tripId}`);
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : "Trip is no longer available");
+      setIncoming(null);
+    }
   }
 
   async function handleReject() {
@@ -110,6 +116,15 @@ export default function DriverDashboardPage() {
               Reject
             </Button>
           </div>
+        </div>
+      )}
+
+      {acceptError && (
+        <div className="mb-4 flex items-center justify-between rounded-xl bg-red-50 p-3 text-sm text-red-800">
+          <span>{acceptError}</span>
+          <button type="button" onClick={() => setAcceptError(null)} className="font-medium underline">
+            Dismiss
+          </button>
         </div>
       )}
 

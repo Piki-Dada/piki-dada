@@ -11,25 +11,25 @@ export interface AuthUser {
 
 interface AuthState {
   accessToken: string | null;
-  refreshToken: string | null;
   user: AuthUser | null;
-  setSession: (accessToken: string, refreshToken: string, user: AuthUser) => void;
+  setSession: (accessToken: string, user: AuthUser) => void;
   clearSession: () => void;
 }
 
+// The refresh token lives only in an httpOnly cookie set by the API — it's never
+// stored here, so it isn't readable by JS even if an XSS bug is ever introduced.
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       accessToken: null,
-      refreshToken: null,
       user: null,
-      setSession: (accessToken, refreshToken, user) => {
+      setSession: (accessToken, user) => {
         document.cookie = `role=${user.role}; path=/; max-age=604800`;
-        set({ accessToken, refreshToken, user });
+        set({ accessToken, user });
       },
       clearSession: () => {
         document.cookie = "role=; path=/; max-age=0";
-        set({ accessToken: null, refreshToken: null, user: null });
+        set({ accessToken: null, user: null });
       },
     }),
     { name: "piki-dada-auth" },

@@ -33,8 +33,29 @@ export default function PassengerBookingPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
 
   const canRequest = pickup && destination && pickupAddress && destinationAddress;
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      setError("Location is not available on this device");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPickup({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setPickupAddress("Current location");
+        setLocating(false);
+      },
+      () => {
+        setError("Could not get your location. Enable location access and try again.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   async function handleRequestRide() {
     if (!pickup || !destination) return;
@@ -82,6 +103,14 @@ export default function PassengerBookingPage() {
               setPickup(location);
             }}
           />
+          <button
+            type="button"
+            onClick={useMyLocation}
+            disabled={locating}
+            className="text-xs text-neutral-500 underline hover:text-neutral-700"
+          >
+            {locating ? "Getting your location..." : "📍 Use my current location"}
+          </button>
           <PlaceInput
             placeholder="Destination"
             value={destinationAddress}

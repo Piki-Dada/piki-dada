@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PaymentMethod, PaymentStatus, TripStatus } from '@prisma/client';
+import { PaymentStatus, TripStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from './pricing.service';
 import { TripsGateway } from './trips.gateway';
@@ -14,9 +14,10 @@ import { UpdateTripStatusDto } from './dto/update-trip-status.dto';
 import { RateTripDto } from './dto/rate-trip.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../notifications/email.service';
+import { decryptUserPhone } from '../common/field-encryption';
 
 const SEARCH_RADIUS_KM = 6;
-const PLATFORM_COMMISSION_RATE = 0.15;
+export const PLATFORM_COMMISSION_RATE = 0.15;
 
 @Injectable()
 export class TripsService {
@@ -94,21 +95,26 @@ export class TripsService {
     const driver = await this.prisma.driver.findUnique({ where: { userId: driverUserId } });
     if (!driver) throw new NotFoundException('Driver not found');
 
-    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
-    if (!trip) throw new NotFoundException('Trip not found');
-    if (trip.status !== TripStatus.SEARCHING) {
+    // The where clause's status check makes this update atomic at the DB level:
+    // if two drivers race, only the first UPDATE...WHERE status='SEARCHING' matches a row.
+    const result = await this.prisma.trip.updateMany({
+      where: { id: tripId, status: TripStatus.SEARCHING },
+      data: { status: TripStatus.ACCEPTED, driverId: driver.id, acceptedAt: new Date() },
+    });
+    if (result.count === 0) {
       throw new BadRequestException('Trip is no longer available');
     }
 
-    const updated = await this.prisma.trip.update({
-      where: { id: tripId },
-      data: { status: TripStatus.ACCEPTED, driverId: driver.id, acceptedAt: new Date() },
-      include: { driver: { include: { vehicle: true, user: { omit: { passwordHash: true } } } } },
-    });
+    const updated = this.decryptTripPhones(
+      await this.prisma.trip.findUniqueOrThrow({
+        where: { id: tripId },
+        include: { driver: { include: { vehicle: true, user: { omit: { passwordHash: true } } } } },
+      }),
+    );
 
-    this.gateway.emitToUser(trip.passengerId, SOCKET_EVENTS.TRIP_ACCEPTED, updated);
+    this.gateway.emitToUser(updated.passengerId, SOCKET_EVENTS.TRIP_ACCEPTED, updated);
     this.notifications.notifyUser(
-      trip.passengerId,
+      updated.passengerId,
       'Driver on the way',
       `${updated.driver?.user?.name ?? 'Your driver'} accepted your ride request.`,
     );
@@ -134,7 +140,7 @@ export class TripsService {
     }
 
     const timestampField = this.timestampFieldFor(dto.status);
-    const updated = await this.prisma.trip.update({
+    await this.prisma.trip.update({
       where: { id: tripId },
       data: {
         status: dto.status,
@@ -144,29 +150,22 @@ export class TripsService {
     });
 
     if (dto.status === TripStatus.COMPLETED) {
+      // Payment always starts PENDING, even for CASH: the driver wallet is only credited once
+      // the payment is actually confirmed (passenger cash confirmation, or a payment webhook),
+      // not just because the ride finished.
       await this.prisma.payment.create({
         data: {
           tripId,
           amount: trip.fare ?? 0,
           currency: trip.currency,
           method: trip.paymentMethod,
-          status: trip.paymentMethod === PaymentMethod.CASH ? PaymentStatus.PAID : PaymentStatus.PENDING,
+          status: PaymentStatus.PENDING,
         },
       });
-      if (trip.driverId && trip.driver) {
+      if (trip.driverId) {
         await this.prisma.driver.update({
           where: { id: trip.driverId },
           data: { totalTrips: { increment: 1 } },
-        });
-        const driverEarnings = Math.round((trip.fare ?? 0) * (1 - PLATFORM_COMMISSION_RATE));
-        await this.prisma.wallet.update({
-          where: { userId: trip.driver.userId },
-          data: {
-            balance: { increment: driverEarnings },
-            ledgerEntries: {
-              create: { amount: driverEarnings, reason: `Trip ${tripId} earnings` },
-            },
-          },
         });
       }
       this.notifications.notifyUser(
@@ -182,6 +181,17 @@ export class TripsService {
       );
     }
 
+    const updated = this.decryptTripPhones(
+      await this.prisma.trip.findUniqueOrThrow({
+        where: { id: tripId },
+        include: {
+          driver: { include: { vehicle: true, user: { omit: { passwordHash: true } } } },
+          passenger: { omit: { passwordHash: true } },
+          payment: true,
+        },
+      }),
+    );
+
     const event =
       dto.status === TripStatus.CANCELLED
         ? SOCKET_EVENTS.TRIP_CANCELLED
@@ -190,6 +200,21 @@ export class TripsService {
     this.gateway.emitToUser(trip.passengerId, event, updated);
 
     return updated;
+  }
+
+  private decryptTripPhones<
+    T extends {
+      driver?: { user?: { phone?: string | null } | null } | null;
+      passenger?: { phone?: string | null } | null;
+    },
+  >(trip: T): T {
+    return {
+      ...trip,
+      driver: trip.driver
+        ? { ...trip.driver, user: trip.driver.user ? decryptUserPhone(trip.driver.user) : trip.driver.user }
+        : trip.driver,
+      passenger: trip.passenger ? decryptUserPhone(trip.passenger) : trip.passenger,
+    };
   }
 
   private timestampFieldFor(status: TripStatus): string | null {
@@ -253,10 +278,21 @@ export class TripsService {
     });
   }
 
-  getTrip(tripId: string) {
-    return this.prisma.trip.findUnique({
+  async getTrip(userId: string, tripId: string) {
+    const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
-      include: { driver: { include: { vehicle: true } }, payment: true },
+      include: {
+        driver: { include: { vehicle: true, user: { omit: { passwordHash: true } } } },
+        passenger: { omit: { passwordHash: true } },
+        payment: true,
+      },
     });
+    if (!trip) throw new NotFoundException('Trip not found');
+    const isPassenger = trip.passengerId === userId;
+    const isDriver = trip.driver?.userId === userId;
+    if (!isPassenger && !isDriver) {
+      throw new ForbiddenException('Not part of this trip');
+    }
+    return this.decryptTripPhones(trip);
   }
 }

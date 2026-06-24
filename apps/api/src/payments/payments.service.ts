@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentStatus } from '@prisma/client';
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PLATFORM_COMMISSION_RATE } from '../trips/trips.service';
 import { StripeService } from './stripe.service';
 import { FlutterwaveService } from './flutterwave.service';
 
@@ -54,9 +55,53 @@ export class PaymentsService {
   }
 
   async markTripPaid(tripId: string, providerRef: string) {
+    const existing = await this.prisma.payment.findUnique({ where: { tripId } });
+    // Idempotency guard: webhook retries are common in production and must not double-credit.
+    if (!existing || existing.status === PaymentStatus.PAID) return existing;
+
     await this.prisma.payment.update({
       where: { tripId },
       data: { status: PaymentStatus.PAID, providerRef },
+    });
+    await this.creditDriverForTrip(tripId);
+  }
+
+  async confirmCashPayment(tripId: string, passengerId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { payment: true },
+    });
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.passengerId !== passengerId) throw new BadRequestException('Not your trip');
+    if (trip.paymentMethod !== PaymentMethod.CASH) {
+      throw new BadRequestException('Trip is not a cash payment');
+    }
+    if (!trip.payment || trip.payment.status === PaymentStatus.PAID) {
+      throw new BadRequestException('Trip has no pending cash payment');
+    }
+
+    await this.prisma.payment.update({
+      where: { tripId },
+      data: { status: PaymentStatus.PAID },
+    });
+    await this.creditDriverForTrip(tripId);
+    return { success: true };
+  }
+
+  private async creditDriverForTrip(tripId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { driver: true },
+    });
+    if (!trip?.driverId || !trip.driver) return;
+
+    const driverEarnings = Math.round((trip.fare ?? 0) * (1 - PLATFORM_COMMISSION_RATE));
+    await this.prisma.wallet.update({
+      where: { userId: trip.driver.userId },
+      data: {
+        balance: { increment: driverEarnings },
+        ledgerEntries: { create: { amount: driverEarnings, reason: `Trip ${tripId} earnings` } },
+      },
     });
   }
 

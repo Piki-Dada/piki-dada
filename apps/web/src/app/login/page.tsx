@@ -26,10 +26,9 @@ export default function LoginPage() {
     try {
       const data = await apiFetch<{
         accessToken: string;
-        refreshToken: string;
         user: { id: string; email: string; role: "PASSENGER" | "DRIVER" | "ADMIN" };
       }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
-      setSession(data.accessToken, data.refreshToken, data.user);
+      setSession(data.accessToken, data.user);
       redirectForRole(data.user.role, router);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -65,6 +64,9 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <Link href="/forgot-password" className="text-xs text-neutral-500 underline">
+                Forgot password?
+              </Link>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>

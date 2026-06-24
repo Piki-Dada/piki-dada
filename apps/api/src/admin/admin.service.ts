@@ -3,6 +3,7 @@ import { PaymentStatus, TripStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
+import { decryptUserPhone } from '../common/field-encryption';
 
 @Injectable()
 export class AdminService {
@@ -30,12 +31,13 @@ export class AdminService {
     };
   }
 
-  listUsers(role?: UserRole) {
-    return this.prisma.user.findMany({
+  async listUsers(role?: UserRole) {
+    const users = await this.prisma.user.findMany({
       where: role ? { role } : undefined,
       omit: { passwordHash: true },
       orderBy: { createdAt: 'desc' },
     });
+    return users.map(decryptUserPhone);
   }
 
   setUserActive(userId: string, isActive: boolean) {

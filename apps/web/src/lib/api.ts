@@ -12,13 +12,14 @@ class ApiError extends Error {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
-  const { refreshToken, user, setSession, clearSession } = useAuthStore.getState();
-  if (!refreshToken || !user) return null;
+  const { user, setSession, clearSession } = useAuthStore.getState();
+  if (!user) return null;
 
+  // No body needed — the refresh token travels as an httpOnly cookie the browser
+  // attaches automatically because of `credentials: "include"`.
   const res = await fetch(`${API_URL}/auth/refresh`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -27,7 +28,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   const data = await res.json();
-  setSession(data.accessToken, data.refreshToken, data.user);
+  setSession(data.accessToken, data.user);
   return data.accessToken;
 }
 
@@ -41,6 +42,7 @@ export async function apiFetch<T = unknown>(
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: "include",
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

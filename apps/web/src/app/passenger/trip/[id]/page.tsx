@@ -72,6 +72,13 @@ export default function PassengerTripPage() {
     window.location.href = url;
   }
 
+  async function handleConfirmCash() {
+    const updated = await apiFetch<Trip>(`/payments/${id}/cash/confirm`, { method: "POST" }).then(
+      () => apiFetch<Trip>(`/trips/${id}`),
+    );
+    setTrip(updated);
+  }
+
   if (!trip) return <div className="p-6 text-center text-neutral-400">Loading trip...</div>;
 
   return (
@@ -123,21 +130,36 @@ export default function PassengerTripPage() {
             </Button>
           )}
 
-          {trip.status === "COMPLETED" && trip.paymentMethod !== "CASH" && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Complete your payment</p>
-              {trip.paymentMethod === "STRIPE" && (
-                <Button className="w-full" onClick={() => handlePay("stripe")}>
-                  Pay with card
+          {trip.status === "COMPLETED" &&
+            trip.paymentMethod !== "CASH" &&
+            trip.payment?.status !== "PAID" && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Complete your payment</p>
+                {trip.paymentMethod === "STRIPE" && (
+                  <Button className="w-full" onClick={() => handlePay("stripe")}>
+                    Pay with card
+                  </Button>
+                )}
+                {trip.paymentMethod === "FLUTTERWAVE" && (
+                  <Button className="w-full" onClick={() => handlePay("flutterwave")}>
+                    Pay with Mobile Money
+                  </Button>
+                )}
+              </div>
+            )}
+
+          {trip.status === "COMPLETED" &&
+            trip.paymentMethod === "CASH" &&
+            trip.payment?.status !== "PAID" && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Confirm you've paid the driver {trip.fare?.toLocaleString()} {trip.currency} in cash
+                </p>
+                <Button className="w-full" onClick={handleConfirmCash}>
+                  I've paid in cash
                 </Button>
-              )}
-              {trip.paymentMethod === "FLUTTERWAVE" && (
-                <Button className="w-full" onClick={() => handlePay("flutterwave")}>
-                  Pay with Mobile Money
-                </Button>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
           {trip.status === "COMPLETED" && !rated && (
             <div className="space-y-2">

@@ -3,6 +3,7 @@ import { DocumentType, DriverApprovalStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { decryptUserPhone } from '../common/field-encryption';
 
 @Injectable()
 export class DriversService {
@@ -19,11 +20,13 @@ export class DriversService {
     return driver;
   }
 
-  getMyProfile(userId: string) {
-    return this.prisma.driver.findUnique({
+  async getMyProfile(userId: string) {
+    const driver = await this.prisma.driver.findUnique({
       where: { userId },
       include: { vehicle: true, documents: true, user: { omit: { passwordHash: true } } },
     });
+    if (!driver) return driver;
+    return { ...driver, user: driver.user ? decryptUserPhone(driver.user) : driver.user };
   }
 
   async upsertVehicle(userId: string, dto: CreateVehicleDto) {
@@ -58,17 +61,27 @@ export class DriversService {
     });
   }
 
-  listPendingApprovals() {
-    return this.prisma.driver.findMany({
+  async listPendingApprovals() {
+    const drivers = await this.prisma.driver.findMany({
       where: { approvalStatus: DriverApprovalStatus.PENDING },
       include: { user: { omit: { passwordHash: true } }, vehicle: true, documents: true },
     });
+    return drivers.map((driver) => ({
+      ...driver,
+      user: driver.user ? decryptUserPhone(driver.user) : driver.user,
+    }));
   }
 
   async setApprovalStatus(driverId: string, status: DriverApprovalStatus) {
-    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: { vehicle: true },
+    });
     if (!driver) {
       throw new NotFoundException('Driver not found');
+    }
+    if (status === DriverApprovalStatus.APPROVED && !driver.vehicle) {
+      throw new BadRequestException('Driver must have a vehicle on file before approval');
     }
     const updated = await this.prisma.driver.update({
       where: { id: driverId },

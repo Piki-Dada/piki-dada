@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Car, MapPin, Tag, DollarSign } from "lucide-react";
+import { LayoutDashboard, Users, Car, MapPin, Tag, DollarSign, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 
 const ITEMS = [
@@ -13,6 +14,7 @@ const ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/pricing", label: "Pricing", icon: DollarSign },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
+  { href: "/admin/push", label: "Push", icon: Megaphone },
 ];
 
 export function AdminNav() {
@@ -38,7 +40,8 @@ export function AdminNav() {
           </Link>
         ))}
         <button
-          onClick={() => {
+          onClick={async () => {
+            await apiFetch("/auth/logout", { method: "POST" }).catch(() => undefined);
             clearSession();
             router.push("/login");
           }}

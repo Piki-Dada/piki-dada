@@ -11,9 +11,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { SOCKET_EVENTS } from './socket-events';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway()
 export class TripsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
@@ -21,6 +22,7 @@ export class TripsGateway implements OnGatewayConnection {
   constructor(
     private jwtService: JwtService,
     private config: ConfigService,
+    private prisma: PrismaService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -40,7 +42,14 @@ export class TripsGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('trip:join')
-  joinTripRoom(@ConnectedSocket() client: Socket, @MessageBody() tripId: string) {
+  async joinTripRoom(@ConnectedSocket() client: Socket, @MessageBody() tripId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { driver: true },
+    });
+    const userId = client.data.userId;
+    const isMember = trip && (trip.passengerId === userId || trip.driver?.userId === userId);
+    if (!isMember) return;
     client.join(`trip:${tripId}`);
   }
 

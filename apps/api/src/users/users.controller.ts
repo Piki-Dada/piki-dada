@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { decryptUserPhone } from '../common/field-encryption';
 
 class FcmTokenDto {
   @IsString()
@@ -20,14 +21,14 @@ export class UsersController {
     const found = await this.usersService.findById(user.id);
     if (!found) return found;
     const { passwordHash, ...safeUser } = found;
-    return safeUser;
+    return decryptUserPhone(safeUser);
   }
 
   @Patch('me')
   async updateMe(@CurrentUser() user: { id: string }, @Body() dto: UpdateProfileDto) {
     const updated = await this.usersService.updateProfile(user.id, dto);
     const { passwordHash, ...safeUser } = updated;
-    return safeUser;
+    return decryptUserPhone(safeUser);
   }
 
   @Patch('me/fcm-token')

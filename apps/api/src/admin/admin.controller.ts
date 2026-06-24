@@ -3,15 +3,23 @@ import { RideType, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminService } from './admin.service';
 import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
+import { BroadcastPushDto } from './dto/broadcast-push.dto';
+import { PushService } from '../push/push.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller('admin')
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private pushService: PushService,
+    private auditLog: AuditLogService,
+  ) {}
 
   @Get('stats')
   getStats() {
@@ -24,13 +32,17 @@ export class AdminController {
   }
 
   @Patch('users/:id/suspend')
-  suspendUser(@Param('id') id: string) {
-    return this.adminService.setUserActive(id, false);
+  async suspendUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    const result = await this.adminService.setUserActive(id, false);
+    this.auditLog.log(admin.id, 'user.suspend', { type: 'User', id });
+    return result;
   }
 
   @Patch('users/:id/activate')
-  activateUser(@Param('id') id: string) {
-    return this.adminService.setUserActive(id, true);
+  async activateUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    const result = await this.adminService.setUserActive(id, true);
+    this.auditLog.log(admin.id, 'user.activate', { type: 'User', id });
+    return result;
   }
 
   @Get('trips')
@@ -44,8 +56,17 @@ export class AdminController {
   }
 
   @Patch('pricing/:rideType')
-  upsertPricing(@Param('rideType') rideType: RideType, @Body() dto: UpsertPricingRuleDto) {
-    return this.adminService.upsertPricingRule(rideType as 'ECONOMY' | 'COMFORT' | 'BODA', dto);
+  async upsertPricing(
+    @CurrentUser() admin: { id: string },
+    @Param('rideType') rideType: RideType,
+    @Body() dto: UpsertPricingRuleDto,
+  ) {
+    const result = await this.adminService.upsertPricingRule(
+      rideType as 'ECONOMY' | 'COMFORT' | 'BODA',
+      dto,
+    );
+    this.auditLog.log(admin.id, 'pricing.upsert', { type: 'PricingRule', id: rideType }, { ...dto });
+    return result;
   }
 
   @Get('coupons')
@@ -54,12 +75,28 @@ export class AdminController {
   }
 
   @Post('coupons')
-  createCoupon(@Body() dto: CreateCouponDto) {
-    return this.adminService.createCoupon(dto);
+  async createCoupon(@CurrentUser() admin: { id: string }, @Body() dto: CreateCouponDto) {
+    const result = await this.adminService.createCoupon(dto);
+    this.auditLog.log(admin.id, 'coupon.create', { type: 'Coupon', id: result.id }, { ...dto });
+    return result;
   }
 
   @Patch('coupons/:id/deactivate')
-  deactivateCoupon(@Param('id') id: string) {
-    return this.adminService.setCouponActive(id, false);
+  async deactivateCoupon(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    const result = await this.adminService.setCouponActive(id, false);
+    this.auditLog.log(admin.id, 'coupon.deactivate', { type: 'Coupon', id });
+    return result;
+  }
+
+  @Post('push/broadcast')
+  async broadcastPush(@CurrentUser() admin: { id: string }, @Body() dto: BroadcastPushDto) {
+    const result = await this.pushService.broadcast(dto.title, dto.body, dto.url);
+    this.auditLog.log(admin.id, 'push.broadcast', undefined, { ...dto });
+    return result;
+  }
+
+  @Get('push/history')
+  pushHistory() {
+    return this.pushService.listBroadcastHistory();
   }
 }

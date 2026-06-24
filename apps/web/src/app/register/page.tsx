@@ -30,13 +30,12 @@ export default function RegisterPage() {
     try {
       const data = await apiFetch<{
         accessToken: string;
-        refreshToken: string;
         user: { id: string; email: string; role: UserRole };
       }>("/auth/register", {
         method: "POST",
         body: JSON.stringify({ name, email, phone, password, role }),
       });
-      setSession(data.accessToken, data.refreshToken, data.user);
+      setSession(data.accessToken, data.user);
       redirectForRole(data.user.role, router);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -84,7 +83,16 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Input
+                id="phone"
+                type="tel"
+                required
+                pattern="^\+?[0-9 ()-]{7,20}$"
+                title="Enter a valid phone number"
+                placeholder="07XXXXXXXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>

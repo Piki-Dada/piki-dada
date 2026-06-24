@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -44,6 +45,14 @@ export class PaymentsController {
     return this.paymentsService.createFlutterwaveCheckout(tripId, user.id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PASSENGER)
+  @Post(':tripId/cash/confirm')
+  confirmCashPayment(@CurrentUser() user: { id: string }, @Param('tripId') tripId: string) {
+    return this.paymentsService.confirmCashPayment(tripId, user.id);
+  }
+
+  @SkipThrottle()
   @Post('webhooks/stripe')
   async stripeWebhook(
     @Req() req: RawBodyRequest<Request>,
@@ -59,6 +68,7 @@ export class PaymentsController {
     return { received: true };
   }
 
+  @SkipThrottle()
   @Post('webhooks/flutterwave')
   async flutterwaveWebhook(
     @Body() body: { data?: { id: string; meta?: { tripId?: string }; status?: string } },

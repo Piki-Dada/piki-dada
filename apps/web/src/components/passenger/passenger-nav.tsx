@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Car, Clock, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 
 const ITEMS = [
@@ -33,7 +34,8 @@ export function PassengerNav() {
         </Link>
       ))}
       <button
-        onClick={() => {
+        onClick={async () => {
+          await apiFetch("/auth/logout", { method: "POST" }).catch(() => undefined);
           clearSession();
           router.push("/login");
         }}

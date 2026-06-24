@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { encryptField } from '../common/field-encryption';
 
 @Injectable()
 export class UsersService {
@@ -30,6 +31,7 @@ export class UsersService {
     return this.prisma.user.create({
       data: {
         ...data,
+        phone: encryptField(data.phone),
         wallet: { create: { balance: 0 } },
         ...(data.role === UserRole.DRIVER
           ? { driverProfile: { create: {} } }
@@ -42,7 +44,10 @@ export class UsersService {
     id: string,
     data: Partial<{ name: string; phone: string; photoUrl: string }>,
   ) {
-    return this.prisma.user.update({ where: { id }, data });
+    return this.prisma.user.update({
+      where: { id },
+      data: { ...data, phone: data.phone !== undefined ? encryptField(data.phone) : undefined },
+    });
   }
 
   setFcmToken(id: string, fcmToken: string) {

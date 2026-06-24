@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { MapsProvider } from "@/components/maps/map-provider";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { ReminderToast } from "@/components/pwa/reminder-toast";
+import { PwaUtilityBar } from "@/components/pwa/pwa-utility-bar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,6 +20,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Piki Dada",
   description: "Modern ride-hailing for Uganda",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#111111",
 };
 
 export default function RootLayout({
@@ -29,7 +38,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-50">
+        <Script src="/pwa-bootstrap.js" strategy="beforeInteractive" />
+        <ServiceWorkerRegister />
         <MapsProvider>{children}</MapsProvider>
+        <PwaUtilityBar />
+        <ReminderToast />
       </body>
     </html>
   );

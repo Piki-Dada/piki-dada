@@ -6,10 +6,12 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/auth-store";
 import { redirectForRole } from "@/lib/auth-helpers";
 import { Button } from "@/components/ui/button";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const { installed } = usePwaInstall();
 
   useEffect(() => {
     if (user) redirectForRole(user.role, router);
@@ -31,6 +33,14 @@ export default function Home() {
           </Button>
         </Link>
       </div>
+      {!installed && (
+        <Link
+          href="/install"
+          className="js-hide-if-pwa-installed mt-2 text-sm text-neutral-400 underline hover:text-neutral-600"
+        >
+          Install the app
+        </Link>
+      )}
     </div>
   );
 }
