@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PaymentStatus, TripStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
@@ -42,6 +42,16 @@ export class AdminService {
 
   setUserActive(userId: string, isActive: boolean) {
     return this.prisma.user.update({ where: { id: userId }, data: { isActive } });
+  }
+
+  async promoteToAdmin(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+    if (user.role === UserRole.ADMIN) throw new BadRequestException('User is already an admin');
+    if (!user.emailVerifiedAt) {
+      throw new BadRequestException('User must have a verified email before being promoted to admin');
+    }
+    return this.prisma.user.update({ where: { id: userId }, data: { role: UserRole.ADMIN } });
   }
 
   listTrips() {

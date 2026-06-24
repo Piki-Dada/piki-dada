@@ -45,6 +45,13 @@ export class AdminController {
     return result;
   }
 
+  @Patch('users/:id/promote')
+  async promoteUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    const result = await this.adminService.promoteToAdmin(id);
+    this.auditLog.log(admin.id, 'user.promote', { type: 'User', id });
+    return result;
+  }
+
   @Get('trips')
   listTrips() {
     return this.adminService.listTrips();
