@@ -41,7 +41,11 @@ export class AdminService {
   }
 
   setUserActive(userId: string, isActive: boolean) {
-    return this.prisma.user.update({ where: { id: userId }, data: { isActive } });
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive },
+      omit: { passwordHash: true },
+    });
   }
 
   async promoteToAdmin(userId: string) {
@@ -51,7 +55,11 @@ export class AdminService {
     if (!user.emailVerifiedAt) {
       throw new BadRequestException('User must have a verified email before being promoted to admin');
     }
-    return this.prisma.user.update({ where: { id: userId }, data: { role: UserRole.ADMIN } });
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role: UserRole.ADMIN },
+      omit: { passwordHash: true },
+    });
   }
 
   listTrips() {
