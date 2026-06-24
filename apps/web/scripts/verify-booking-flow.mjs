@@ -32,9 +32,9 @@ async function shot(name) {
 
 try {
   console.log("step: goto register");
-  await page.goto(`${BASE_URL}/register`, { timeout: 60000, waitUntil: "domcontentloaded" });
+  await page.goto(`${BASE_URL}/register`, { timeout: 60000, waitUntil: "networkidle" });
   await page.waitForSelector("text=Create your account");
-
+  await page.waitForTimeout(1500); // let React hydration finish before interacting
 
   console.log("step: fill register form");
   await page.fill("#name", "Playwright Tester");
