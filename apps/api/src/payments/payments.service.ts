@@ -55,14 +55,15 @@ export class PaymentsService {
   }
 
   async markTripPaid(tripId: string, providerRef: string) {
-    const existing = await this.prisma.payment.findUnique({ where: { tripId } });
-    // Idempotency guard: webhook retries are common in production and must not double-credit.
-    if (!existing || existing.status === PaymentStatus.PAID) return existing;
-
-    await this.prisma.payment.update({
-      where: { tripId },
+    // Atomic idempotency guard: webhook retries are common in production, and can arrive
+    // concurrently, so a read-then-write check has a race window that double-credits the
+    // driver. The status filter in the WHERE clause makes only the first concurrent call win,
+    // the same pattern used for the trip-acceptance race fix.
+    const result = await this.prisma.payment.updateMany({
+      where: { tripId, status: { not: PaymentStatus.PAID } },
       data: { status: PaymentStatus.PAID, providerRef },
     });
+    if (result.count === 0) return;
     await this.creditDriverForTrip(tripId);
   }
 
@@ -76,14 +77,19 @@ export class PaymentsService {
     if (trip.paymentMethod !== PaymentMethod.CASH) {
       throw new BadRequestException('Trip is not a cash payment');
     }
-    if (!trip.payment || trip.payment.status === PaymentStatus.PAID) {
+    if (!trip.payment) {
       throw new BadRequestException('Trip has no pending cash payment');
     }
 
-    await this.prisma.payment.update({
-      where: { tripId },
+    // Same atomic guard as markTripPaid — a double-tap or duplicate request must not be able
+    // to both pass the pending check and double-credit the driver wallet.
+    const result = await this.prisma.payment.updateMany({
+      where: { tripId, status: { not: PaymentStatus.PAID } },
       data: { status: PaymentStatus.PAID },
     });
+    if (result.count === 0) {
+      throw new BadRequestException('Trip has no pending cash payment');
+    }
     await this.creditDriverForTrip(tripId);
     return { success: true };
   }
