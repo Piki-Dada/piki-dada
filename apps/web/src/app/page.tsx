@@ -21,7 +21,7 @@ export default function Home() {
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
       <h1 className="text-4xl font-bold">Piki Dada</h1>
       <p className="max-w-sm text-neutral-500">
-        Modern ride-hailing for Uganda — book a boda, taxi, or comfort ride in seconds.
+        Your trusted partner for safe, reliable boda rides and fast deliveries across the city and beyond.
       </p>
       <div className="flex gap-3">
         <Link href="/register">

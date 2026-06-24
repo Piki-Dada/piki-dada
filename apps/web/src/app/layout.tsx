@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Piki Dada",
-  description: "Modern ride-hailing for Uganda",
+  description: "Your trusted partner for safe, reliable boda rides and fast deliveries across the city and beyond.",
   manifest: "/manifest.json",
 };
 
