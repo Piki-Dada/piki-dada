@@ -1,0 +1,13 @@
+name: Keep API and DB warm
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: curl -sf --max-time 30 https://piki-dada-api.onrender.com/health
