@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/auth-store";
 import { redirectForRole } from "@/lib/auth-helpers";
@@ -19,7 +20,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-      <h1 className="text-4xl font-bold">Piki Dada</h1>
+      <Image src="/brand/pikidada_logo4.png" alt="Piki Dada" width={280} height={90} priority />
+      <h1 className="sr-only">Piki Dada</h1>
       <p className="max-w-sm text-neutral-500">
         Your trusted partner for safe, reliable boda rides and fast deliveries across the city and beyond.
       </p>

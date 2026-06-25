@@ -18,13 +18,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://piki-dada.vercel.app"),
   title: "Piki Dada",
   description: "Your trusted partner for safe, reliable boda rides and fast deliveries across the city and beyond.",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Piki Dada",
+    description: "Your trusted partner for safe, reliable boda rides and fast deliveries across the city and beyond.",
+    images: ["/brand/og-image.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Piki Dada",
+    description: "Your trusted partner for safe, reliable boda rides and fast deliveries across the city and beyond.",
+    images: ["/brand/og-image.png"],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#111111",
+  themeColor: "#060707",
 };
 
 export default function RootLayout({

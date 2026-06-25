@@ -10,6 +10,7 @@ import { apiFetch, apiUrl } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { redirectForRole } from "@/lib/auth-helpers";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,7 +39,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 px-4">
+      <Image src="/brand/pikidada_logo4.png" alt="Piki Dada" width={180} height={58} />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Welcome back</CardTitle>

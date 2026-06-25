@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api";
 import { useAuthStore, type UserRole } from "@/lib/auth-store";
 import { redirectForRole } from "@/lib/auth-helpers";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export default function RegisterPage() {
@@ -45,7 +46,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 px-4">
+      <Image src="/brand/pikidada_logo4.png" alt="Piki Dada" width={180} height={58} />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Create your account</CardTitle>
@@ -59,7 +61,7 @@ export default function RegisterPage() {
                 onClick={() => setRole(r)}
                 className={cn(
                   "rounded-xl border px-3 py-2 text-sm font-medium",
-                  role === r ? "border-black bg-black text-white" : "border-neutral-300",
+                  role === r ? "border-[#F4C12C] bg-[#F4C12C] text-black" : "border-neutral-300",
                 )}
               >
                 {r === "PASSENGER" ? "Ride" : "Drive"}

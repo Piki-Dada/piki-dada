@@ -1,4 +1,4 @@
-const CACHE_NAME = "piki-dada-v1";
+const CACHE_NAME = "piki-dada-v2";
 const PRECACHE_URLS = ["/", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 const STATIC_EXTENSIONS = /\.(css|js|svg|png|jpg|jpeg|webp|woff|woff2)$/;

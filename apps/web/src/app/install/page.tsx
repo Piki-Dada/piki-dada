@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +61,13 @@ export default function InstallPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
+      <Image
+        src="/icons/icon-192.png"
+        alt="Piki Dada"
+        width={88}
+        height={88}
+        className="rounded-2xl shadow-md"
+      />
       <h1 className="text-3xl font-bold">Install Piki Dada</h1>
       <p className="max-w-sm text-neutral-500">
         Add Piki Dada to your home screen for faster booking and offline-ready access.

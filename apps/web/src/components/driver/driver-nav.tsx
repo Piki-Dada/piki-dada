@@ -24,10 +24,11 @@ export function DriverNav() {
           key={href}
           href={href}
           className={cn(
-            "flex flex-col items-center gap-1 px-4 py-1 text-xs",
+            "relative flex flex-col items-center gap-1 px-4 py-1 text-xs",
             pathname === href ? "text-black" : "text-neutral-400",
           )}
         >
+          {pathname === href && <span className="absolute -top-2 h-1 w-6 rounded-full bg-[#F4C12C]" />}
           <Icon size={20} />
           {label}
         </Link>

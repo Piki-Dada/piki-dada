@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Users, Car, MapPin, Tag, DollarSign, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,15 +25,20 @@ export function AdminNav() {
 
   return (
     <aside className="fixed inset-y-0 left-0 w-56 border-r border-neutral-200 bg-white p-4">
-      <p className="mb-6 px-2 text-lg font-bold">Piki Dada Admin</p>
+      <div className="mb-6 flex items-center gap-2 px-2">
+        <Image src="/brand/pikidada_logo4.png" alt="Piki Dada" width={120} height={39} />
+        <span className="text-xs font-semibold text-neutral-400">Admin</span>
+      </div>
       <nav className="space-y-1">
         {ITEMS.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium",
-              pathname === href ? "bg-black text-white" : "text-neutral-600 hover:bg-neutral-100",
+              "flex items-center gap-2 rounded-lg border-l-4 px-3 py-2 text-sm font-medium",
+              pathname === href
+                ? "border-[#F4C12C] bg-black text-white"
+                : "border-transparent text-neutral-600 hover:bg-neutral-100",
             )}
           >
             <Icon size={16} />
