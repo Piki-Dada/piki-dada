@@ -6,14 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import type { RideType } from "@/lib/types";
 
-const RIDE_TYPES: RideType[] = ["BODA", "ECONOMY", "COMFORT"];
 const DOCUMENT_TYPES: { value: string; label: string }[] = [
   { value: "NATIONAL_ID", label: "National ID" },
   { value: "DRIVING_PERMIT", label: "Driving Permit" },
-  { value: "VEHICLE_REGISTRATION", label: "Vehicle Registration" },
+  { value: "VEHICLE_REGISTRATION", label: "Motorcycle Registration" },
   { value: "INSURANCE", label: "Insurance" },
 ];
 
@@ -22,7 +19,6 @@ export function VehicleSetup({ onDone }: { onDone: () => void }) {
   const [model, setModel] = useState("");
   const [color, setColor] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
-  const [rideType, setRideType] = useState<RideType>("ECONOMY");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +29,7 @@ export function VehicleSetup({ onDone }: { onDone: () => void }) {
     try {
       await apiFetch("/drivers/me/vehicle", {
         method: "POST",
-        body: JSON.stringify({ make, model, color, plateNumber, rideType }),
+        body: JSON.stringify({ make, model, color, plateNumber, rideType: "BODA" }),
       });
       onDone();
     } catch (err) {
@@ -46,7 +42,7 @@ export function VehicleSetup({ onDone }: { onDone: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add your vehicle</CardTitle>
+        <CardTitle>Motorcycle details</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -72,24 +68,6 @@ export function VehicleSetup({ onDone }: { onDone: () => void }) {
                 value={plateNumber}
                 onChange={(e) => setPlateNumber(e.target.value)}
               />
-            </div>
-          </div>
-          <div>
-            <p className="mb-2 text-sm font-medium text-neutral-600">Ride type</p>
-            <div className="grid grid-cols-3 gap-2">
-              {RIDE_TYPES.map((rt) => (
-                <button
-                  key={rt}
-                  type="button"
-                  onClick={() => setRideType(rt)}
-                  className={cn(
-                    "rounded-xl border py-2 text-sm",
-                    rideType === rt ? "border-black bg-black text-white" : "border-neutral-300",
-                  )}
-                >
-                  {rt}
-                </button>
-              ))}
             </div>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}

@@ -10,16 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore, type UserRole } from "@/lib/auth-store";
 import { redirectForRole } from "@/lib/auth-helpers";
-import type { DocumentType, RideType } from "@/lib/types";
+import type { DocumentType } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const RIDE_TYPES: RideType[] = ["BODA", "ECONOMY", "COMFORT"];
 const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
   { value: "NATIONAL_ID", label: "National ID" },
   { value: "DRIVING_PERMIT", label: "Driving Permit" },
-  { value: "VEHICLE_REGISTRATION", label: "Vehicle Registration" },
+  { value: "VEHICLE_REGISTRATION", label: "Motorcycle Registration" },
   { value: "INSURANCE", label: "Insurance" },
 ];
 
@@ -37,7 +36,6 @@ export default function RegisterPage() {
   const [model, setModel] = useState("");
   const [color, setColor] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
-  const [rideType, setRideType] = useState<RideType>("ECONOMY");
   const [documents, setDocuments] = useState<Record<DocumentType, File | null>>({
     NATIONAL_ID: null,
     DRIVING_PERMIT: null,
@@ -73,7 +71,7 @@ export default function RegisterPage() {
       if (role === "DRIVER") {
         await apiFetch("/drivers/me/vehicle", {
           method: "POST",
-          body: JSON.stringify({ make, model, color, plateNumber, rideType }),
+          body: JSON.stringify({ make, model, color, plateNumber, rideType: "BODA" }),
         });
         for (const doc of DOCUMENT_TYPES) {
           const file = documents[doc.value];
@@ -168,7 +166,7 @@ export default function RegisterPage() {
             {role === "DRIVER" && (
               <>
                 <div className="border-t border-neutral-200 pt-4">
-                  <p className="mb-3 text-sm font-semibold">Vehicle details</p>
+                  <p className="mb-3 text-sm font-semibold">Motorcycle details</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="make">Make</Label>
@@ -202,26 +200,6 @@ export default function RegisterPage() {
                         value={plateNumber}
                         onChange={(e) => setPlateNumber(e.target.value)}
                       />
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <p className="mb-2 text-sm font-medium text-neutral-600">Ride type</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {RIDE_TYPES.map((rt) => (
-                        <button
-                          key={rt}
-                          type="button"
-                          onClick={() => setRideType(rt)}
-                          className={cn(
-                            "rounded-xl border py-2 text-sm",
-                            rideType === rt
-                              ? "border-black bg-black text-white"
-                              : "border-neutral-300",
-                          )}
-                        >
-                          {rt}
-                        </button>
-                      ))}
                     </div>
                   </div>
                 </div>

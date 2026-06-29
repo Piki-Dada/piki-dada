@@ -9,7 +9,7 @@ import type { DocumentType, DriverProfile } from "@/lib/types";
 const DOCUMENT_LABELS: Record<DocumentType, string> = {
   NATIONAL_ID: "National ID",
   DRIVING_PERMIT: "Driving Permit",
-  VEHICLE_REGISTRATION: "Vehicle Registration",
+  VEHICLE_REGISTRATION: "Motorcycle Registration",
   INSURANCE: "Insurance",
 };
 
