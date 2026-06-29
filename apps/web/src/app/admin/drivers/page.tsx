@@ -4,7 +4,18 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
-import type { DriverProfile } from "@/lib/types";
+import type { DocumentType, DriverProfile } from "@/lib/types";
+
+const DOCUMENT_LABELS: Record<DocumentType, string> = {
+  NATIONAL_ID: "National ID",
+  DRIVING_PERMIT: "Driving Permit",
+  VEHICLE_REGISTRATION: "Vehicle Registration",
+  INSURANCE: "Insurance",
+};
+
+function isImageUrl(url: string) {
+  return /\.(jpe?g|png|webp)$/i.test(url);
+}
 
 export default function AdminDriversPage() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
@@ -46,7 +57,35 @@ export default function AdminDriversPage() {
                 ) : (
                   <p className="text-sm text-yellow-600">No vehicle added yet</p>
                 )}
-                <p className="text-xs text-neutral-400">{d.documents.length} document(s) uploaded</p>
+                {d.documents.length === 0 ? (
+                  <p className="text-xs text-neutral-400">No documents uploaded</p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {d.documents.map((doc) => (
+                      <a
+                        key={doc.id}
+                        href={doc.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
+                      >
+                        {isImageUrl(doc.fileUrl) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={doc.fileUrl}
+                            alt={DOCUMENT_LABELS[doc.type]}
+                            className="h-16 w-24 rounded-md border border-neutral-200 object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-16 w-24 items-center justify-center rounded-md border border-neutral-200 text-[11px] uppercase">
+                            PDF
+                          </span>
+                        )}
+                        <span className="underline">{DOCUMENT_LABELS[doc.type]}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => approve(d.id)} disabled={!d.vehicle}>

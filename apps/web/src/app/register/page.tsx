@@ -10,9 +10,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore, type UserRole } from "@/lib/auth-store";
 import { redirectForRole } from "@/lib/auth-helpers";
+import type { DocumentType, RideType } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+
+const RIDE_TYPES: RideType[] = ["BODA", "ECONOMY", "COMFORT"];
+const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
+  { value: "NATIONAL_ID", label: "National ID" },
+  { value: "DRIVING_PERMIT", label: "Driving Permit" },
+  { value: "VEHICLE_REGISTRATION", label: "Vehicle Registration" },
+  { value: "INSURANCE", label: "Insurance" },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -23,6 +32,19 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [color, setColor] = useState("");
+  const [plateNumber, setPlateNumber] = useState("");
+  const [rideType, setRideType] = useState<RideType>("ECONOMY");
+  const [documents, setDocuments] = useState<Record<DocumentType, File | null>>({
+    NATIONAL_ID: null,
+    DRIVING_PERMIT: null,
+    VEHICLE_REGISTRATION: null,
+    INSURANCE: null,
+  });
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +53,10 @@ export default function RegisterPage() {
     setError(null);
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+    if (role === "DRIVER" && DOCUMENT_TYPES.some((d) => !documents[d.value])) {
+      setError("All documents are required");
       return;
     }
     setLoading(true);
@@ -43,6 +69,22 @@ export default function RegisterPage() {
         body: JSON.stringify({ name, email, phone, password, role }),
       });
       setSession(data.accessToken, data.user);
+
+      if (role === "DRIVER") {
+        await apiFetch("/drivers/me/vehicle", {
+          method: "POST",
+          body: JSON.stringify({ make, model, color, plateNumber, rideType }),
+        });
+        for (const doc of DOCUMENT_TYPES) {
+          const file = documents[doc.value];
+          if (!file) continue;
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", doc.value);
+          await apiFetch("/drivers/me/documents", { method: "POST", body: formData });
+        }
+      }
+
       redirectForRole(data.user.role, router);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -52,7 +94,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 px-4 py-10">
       <Image src="/brand/pikidada_logo4.png" alt="Piki Dada" width={180} height={58} />
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -122,6 +164,94 @@ export default function RegisterPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
+
+            {role === "DRIVER" && (
+              <>
+                <div className="border-t border-neutral-200 pt-4">
+                  <p className="mb-3 text-sm font-semibold">Vehicle details</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="make">Make</Label>
+                      <Input id="make" required value={make} onChange={(e) => setMake(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="model">Model</Label>
+                      <Input
+                        id="model"
+                        required
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="color">Color</Label>
+                      <Input
+                        id="color"
+                        required
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="plateNumber">Plate number</Label>
+                      <Input
+                        id="plateNumber"
+                        required
+                        value={plateNumber}
+                        onChange={(e) => setPlateNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <p className="mb-2 text-sm font-medium text-neutral-600">Ride type</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {RIDE_TYPES.map((rt) => (
+                        <button
+                          key={rt}
+                          type="button"
+                          onClick={() => setRideType(rt)}
+                          className={cn(
+                            "rounded-xl border py-2 text-sm",
+                            rideType === rt
+                              ? "border-black bg-black text-white"
+                              : "border-neutral-300",
+                          )}
+                        >
+                          {rt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-neutral-200 pt-4">
+                  <p className="mb-3 text-sm font-semibold">Documents</p>
+                  <div className="space-y-3">
+                    {DOCUMENT_TYPES.map((doc) => (
+                      <div key={doc.value} className="space-y-1.5">
+                        <Label htmlFor={doc.value}>{doc.label}</Label>
+                        <input
+                          id={doc.value}
+                          type="file"
+                          required
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          onChange={(e) =>
+                            setDocuments((prev) => ({
+                              ...prev,
+                              [doc.value]: e.target.files?.[0] ?? null,
+                            }))
+                          }
+                          className="block w-full text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create account"}
