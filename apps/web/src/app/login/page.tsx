@@ -20,10 +20,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent">("idle");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNeedsVerification(false);
     setLoading(true);
     try {
       const data = await apiFetch<{
@@ -33,9 +36,24 @@ export default function LoginPage() {
       setSession(data.accessToken, data.user);
       redirectForRole(data.user.role, router);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const message = err instanceof Error ? err.message : "Login failed";
+      setError(message);
+      setNeedsVerification(message.toLowerCase().includes("verify your email"));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resendVerification() {
+    setResendStatus("sending");
+    try {
+      await apiFetch("/auth/resend-verification-email", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setResendStatus("sent");
+    } catch {
+      setResendStatus("idle");
     }
   }
 
@@ -71,6 +89,22 @@ export default function LoginPage() {
               </Link>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
+            {needsVerification && (
+              <div className="text-sm">
+                {resendStatus === "sent" ? (
+                  <p className="text-green-700">Verification email sent — check your inbox.</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resendVerification}
+                    disabled={resendStatus === "sending"}
+                    className="font-medium text-black underline"
+                  >
+                    {resendStatus === "sending" ? "Sending..." : "Resend verification email"}
+                  </button>
+                )}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}
             </Button>

@@ -45,14 +45,14 @@ export class AdminController {
   @Patch('users/:id/suspend')
   async suspendUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.adminService.setUserActive(id, false);
-    this.auditLog.log(admin.id, 'user.suspend', { type: 'User', id });
+    await this.auditLog.log(admin.id, 'user.suspend', { type: 'User', id });
     return result;
   }
 
   @Patch('users/:id/activate')
   async activateUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.adminService.setUserActive(id, true);
-    this.auditLog.log(admin.id, 'user.activate', { type: 'User', id });
+    await this.auditLog.log(admin.id, 'user.activate', { type: 'User', id });
     return result;
   }
 
@@ -62,14 +62,14 @@ export class AdminController {
       throw new BadRequestException('You cannot delete your own account');
     }
     const result = await this.adminService.deleteUser(id);
-    this.auditLog.log(admin.id, 'user.delete', { type: 'User', id });
+    await this.auditLog.log(admin.id, 'user.delete', { type: 'User', id });
     return result;
   }
 
   @Patch('users/:id/promote')
   async promoteUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.adminService.promoteToAdmin(id);
-    this.auditLog.log(admin.id, 'user.promote', { type: 'User', id });
+    await this.auditLog.log(admin.id, 'user.promote', { type: 'User', id });
     return result;
   }
 
@@ -93,7 +93,7 @@ export class AdminController {
       rideType as 'ECONOMY' | 'COMFORT' | 'BODA',
       dto,
     );
-    this.auditLog.log(admin.id, 'pricing.upsert', { type: 'PricingRule', id: rideType }, { ...dto });
+    await this.auditLog.log(admin.id, 'pricing.upsert', { type: 'PricingRule', id: rideType }, { ...dto });
     return result;
   }
 
@@ -105,21 +105,21 @@ export class AdminController {
   @Post('coupons')
   async createCoupon(@CurrentUser() admin: { id: string }, @Body() dto: CreateCouponDto) {
     const result = await this.adminService.createCoupon(dto);
-    this.auditLog.log(admin.id, 'coupon.create', { type: 'Coupon', id: result.id }, { ...dto });
+    await this.auditLog.log(admin.id, 'coupon.create', { type: 'Coupon', id: result.id }, { ...dto });
     return result;
   }
 
   @Patch('coupons/:id/deactivate')
   async deactivateCoupon(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.adminService.setCouponActive(id, false);
-    this.auditLog.log(admin.id, 'coupon.deactivate', { type: 'Coupon', id });
+    await this.auditLog.log(admin.id, 'coupon.deactivate', { type: 'Coupon', id });
     return result;
   }
 
   @Post('push/broadcast')
   async broadcastPush(@CurrentUser() admin: { id: string }, @Body() dto: BroadcastPushDto) {
     const result = await this.pushService.broadcast(dto.title, dto.body, dto.url);
-    this.auditLog.log(admin.id, 'push.broadcast', undefined, { ...dto });
+    await this.auditLog.log(admin.id, 'push.broadcast', undefined, { ...dto });
     return result;
   }
 

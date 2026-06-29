@@ -123,6 +123,14 @@ export class AuthController {
     return this.authService.sendEmailVerification(user.id, user.email);
   }
 
+  // Unauthenticated variant: needed because a user blocked at login (unverified email)
+  // has no JWT yet to call the guarded endpoint above.
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('resend-verification-email')
+  resendVerificationByEmail(@Body() dto: ForgotPasswordDto) {
+    return this.authService.resendVerificationByEmail(dto.email);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('sessions')
   listSessions(@CurrentUser() user: { id: string }) {

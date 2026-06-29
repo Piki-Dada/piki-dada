@@ -89,7 +89,7 @@ export class DriversController {
   @Patch(':id/approve')
   async approve(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.driversService.setApprovalStatus(id, 'APPROVED');
-    this.auditLog.log(admin.id, 'driver.approve', { type: 'Driver', id });
+    await this.auditLog.log(admin.id, 'driver.approve', { type: 'Driver', id });
     return result;
   }
 
@@ -97,7 +97,7 @@ export class DriversController {
   @Patch(':id/reject')
   async reject(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.driversService.setApprovalStatus(id, 'REJECTED');
-    this.auditLog.log(admin.id, 'driver.reject', { type: 'Driver', id });
+    await this.auditLog.log(admin.id, 'driver.reject', { type: 'Driver', id });
     return result;
   }
 }

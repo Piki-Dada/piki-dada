@@ -98,6 +98,16 @@ export class AuthService {
     return { success: true };
   }
 
+  async resendVerificationByEmail(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    // Always return the same response whether or not the email exists/is already
+    // verified, to avoid leaking which addresses are registered.
+    if (user && !user.emailVerifiedAt) {
+      await this.sendEmailVerification(user.id, user.email);
+    }
+    return { success: true };
+  }
+
   async forgotPassword(email: string) {
     const user = await this.usersService.findByEmail(email);
     // Always return the same response whether or not the email exists, to avoid leaking
@@ -151,6 +161,11 @@ export class AuthService {
       });
       throw new UnauthorizedException('Invalid credentials');
     }
+    if (!user.emailVerifiedAt) {
+      throw new UnauthorizedException(
+        'Please verify your email before logging in. Check your inbox or request a new verification link.',
+      );
+    }
     // Transparent upgrade: this is the only point we ever have the plaintext password again,
     // so a successful legacy-bcrypt verify is also our chance to re-hash with Argon2id.
     const upgradeHash = isLegacyBcryptHash(user.passwordHash)
@@ -185,6 +200,12 @@ export class AuthService {
         name: profile.name,
         photoUrl: profile.photoUrl,
         role,
+      });
+      // Google has already verified this email address, so there's no need to make
+      // the user click a separate verification link.
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: new Date() },
       });
     }
     return this.issueTokens(user.id, user.email, user.role, meta);
