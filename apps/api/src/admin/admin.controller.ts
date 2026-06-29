@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { RideType, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -42,6 +53,16 @@ export class AdminController {
   async activateUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
     const result = await this.adminService.setUserActive(id, true);
     this.auditLog.log(admin.id, 'user.activate', { type: 'User', id });
+    return result;
+  }
+
+  @Delete('users/:id')
+  async deleteUser(@CurrentUser() admin: { id: string }, @Param('id') id: string) {
+    if (id === admin.id) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
+    const result = await this.adminService.deleteUser(id);
+    this.auditLog.log(admin.id, 'user.delete', { type: 'User', id });
     return result;
   }
 

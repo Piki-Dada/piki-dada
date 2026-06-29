@@ -44,6 +44,22 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function deleteUser(user: AdminUser) {
+    if (
+      !confirm(
+        `Permanently delete ${user.name} (${user.email})? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await apiFetch(`/admin/users/${user.id}`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete user");
+    }
+  }
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Users</h1>
@@ -76,6 +92,11 @@ export default function AdminUsersPage() {
                 >
                   {u.isActive ? "Suspend" : "Activate"}
                 </Button>
+                {u.role !== "ADMIN" && (
+                  <Button size="sm" variant="destructive" onClick={() => deleteUser(u)}>
+                    Delete
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

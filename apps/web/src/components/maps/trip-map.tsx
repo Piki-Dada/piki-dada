@@ -67,8 +67,8 @@ export function TripMap({ pickup, destination, driverLocation, height = "300px" 
         scrollWheelZoom={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=${process.env.NEXT_PUBLIC_STADIA_MAPS_API_KEY ?? ""}`}
         />
         {pickup && pickupIcon && <Marker position={[pickup.lat, pickup.lng]} icon={pickupIcon} />}
         {destination && destinationIcon && (

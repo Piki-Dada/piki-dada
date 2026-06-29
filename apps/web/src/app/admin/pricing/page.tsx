@@ -16,7 +16,7 @@ interface PricingRule {
   currency: string;
 }
 
-const RIDE_TYPES: RideType[] = ["BODA", "ECONOMY", "COMFORT"];
+const RIDE_TYPES: RideType[] = ["BODA"];
 
 export default function AdminPricingPage() {
   const [rules, setRules] = useState<Record<string, PricingRule>>({});
@@ -62,13 +62,16 @@ export default function AdminPricingPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Pricing rules</h1>
+      <p className="mb-4 text-sm text-neutral-500">
+        Shared fare used for both Passenger and Package Delivery requests.
+      </p>
       <div className="grid gap-4 lg:grid-cols-3">
         {RIDE_TYPES.map((rt) => {
           const rule = getRule(rt);
           return (
             <Card key={rt}>
               <CardHeader>
-                <CardTitle>{rt}</CardTitle>
+                <CardTitle>Boda fare</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">

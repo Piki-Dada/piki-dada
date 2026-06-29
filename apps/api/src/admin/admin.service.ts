@@ -48,6 +48,31 @@ export class AdminService {
     });
   }
 
+  async deleteUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { driverProfile: true },
+    });
+    if (!user) throw new BadRequestException('User not found');
+
+    const tripCount = await this.prisma.trip.count({
+      where: {
+        OR: [
+          { passengerId: userId },
+          ...(user.driverProfile ? [{ driverId: user.driverProfile.id }] : []),
+        ],
+      },
+    });
+    if (tripCount > 0) {
+      throw new BadRequestException(
+        'User has trip history and cannot be deleted. Suspend the account instead.',
+      );
+    }
+
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { id: userId };
+  }
+
   async promoteToAdmin(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');

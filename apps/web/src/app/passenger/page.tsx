@@ -12,15 +12,12 @@ import type { LatLng, PaymentMethod, RideType, Trip } from "@/lib/types";
 import { PassengerNav } from "@/components/passenger/passenger-nav";
 
 const RIDE_TYPES: { value: RideType; label: string; emoji: string }[] = [
-  { value: "BODA", label: "Boda", emoji: "🏍️" },
-  { value: "ECONOMY", label: "Economy", emoji: "🚗" },
-  { value: "COMFORT", label: "Comfort", emoji: "🚙" },
+  { value: "BODA", label: "Passenger", emoji: "🧍" },
+  { value: "BODA", label: "Package Delivery", emoji: "📦" },
 ];
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Cash" },
-  { value: "STRIPE", label: "Card (Stripe)" },
-  { value: "FLUTTERWAVE", label: "Mobile Money" },
 ];
 
 export default function PassengerBookingPage() {
@@ -29,7 +26,8 @@ export default function PassengerBookingPage() {
   const [pickup, setPickup] = useState<LatLng | undefined>();
   const [destinationAddress, setDestinationAddress] = useState("");
   const [destination, setDestination] = useState<LatLng | undefined>();
-  const [rideType, setRideType] = useState<RideType>("ECONOMY");
+  const rideType: RideType = "BODA";
+  const [serviceLabel, setServiceLabel] = useState(RIDE_TYPES[0].label);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,15 +121,15 @@ export default function PassengerBookingPage() {
 
           <div>
             <p className="mb-2 text-sm font-medium text-neutral-600">Ride type</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {RIDE_TYPES.map((rt) => (
                 <button
-                  key={rt.value}
+                  key={rt.label}
                   type="button"
-                  onClick={() => setRideType(rt.value)}
+                  onClick={() => setServiceLabel(rt.label)}
                   className={cn(
                     "flex flex-col items-center gap-1 rounded-xl border py-3 text-sm",
-                    rideType === rt.value ? "border-black bg-black text-white" : "border-neutral-300",
+                    serviceLabel === rt.label ? "border-black bg-black text-white" : "border-neutral-300",
                   )}
                 >
                   <span className="text-xl">{rt.emoji}</span>
@@ -143,7 +141,7 @@ export default function PassengerBookingPage() {
 
           <div>
             <p className="mb-2 text-sm font-medium text-neutral-600">Payment</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {PAYMENT_METHODS.map((pm) => (
                 <button
                   key={pm.value}
