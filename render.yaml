@@ -40,9 +40,15 @@ services:
         sync: false
       - key: FLUTTERWAVE_SECRET_HASH
         sync: false
-      - key: RESEND_API_KEY
+      - key: SMTP_HOST
         sync: false
-      - key: RESEND_FROM_EMAIL
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
         sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false

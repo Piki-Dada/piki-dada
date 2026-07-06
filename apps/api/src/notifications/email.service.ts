@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import { createTransport, type Transporter } from 'nodemailer';
 
 function escapeHtml(value: string) {
   return value
@@ -12,21 +12,30 @@ function escapeHtml(value: string) {
 
 @Injectable()
 export class EmailService {
-  private resend: Resend;
+  private transporter: Transporter;
   private fromAddress: string;
   private webUrl: string;
 
   constructor(private config: ConfigService) {
-    this.resend = new Resend(this.config.getOrThrow<string>('RESEND_API_KEY'));
-    this.fromAddress = this.config.getOrThrow<string>('RESEND_FROM_EMAIL');
+    this.transporter = createTransport({
+      host: this.config.getOrThrow<string>('SMTP_HOST'),
+      port: this.config.get<number>('SMTP_PORT', 465),
+      secure: this.config.get<number>('SMTP_PORT', 465) === 465,
+      auth: {
+        user: this.config.getOrThrow<string>('SMTP_USER'),
+        pass: this.config.getOrThrow<string>('SMTP_PASSWORD'),
+      },
+    });
+    this.fromAddress = this.config.getOrThrow<string>('SMTP_FROM_EMAIL');
     this.webUrl = this.config.getOrThrow<string>('CORS_ORIGIN');
   }
 
   async send(to: string, subject: string, html: string) {
     try {
-      await this.resend.emails.send({ from: this.fromAddress, to, subject, html });
-    } catch {
-      // Email delivery failures shouldn't break the request flow (e.g. placeholder API key in dev)
+      await this.transporter.sendMail({ from: this.fromAddress, to, subject, html });
+    } catch (err) {
+      // Email delivery failures shouldn't break the request flow (e.g. placeholder SMTP creds in dev)
+      console.error('EmailService: failed to send', subject, 'to', to, err);
     }
   }
 
