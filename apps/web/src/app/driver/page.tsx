@@ -130,7 +130,7 @@ export default function DriverDashboardPage() {
 
       {profile.approvalStatus === "PENDING" && (
         <div className="mb-4 rounded-xl bg-yellow-50 p-3 text-sm text-yellow-800">
-          Your account is pending admin approval. Add your vehicle and documents below.
+          Your account is pending admin approval. We will review your application and notify you once it is approved.
         </div>
       )}
       {profile.approvalStatus === "REJECTED" && (
@@ -158,7 +158,7 @@ export default function DriverDashboardPage() {
       </Card>
 
       {!profile.vehicle && <VehicleSetup onDone={loadProfile} />}
-      {profile.approvalStatus !== "APPROVED" && (
+      {profile.approvalStatus !== "APPROVED" && profile.documents.length < 4 && (
         <div className="mt-4">
           <DocumentUpload onUploaded={loadProfile} />
         </div>
