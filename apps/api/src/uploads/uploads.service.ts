@@ -12,10 +12,11 @@ export class UploadsService {
     });
   }
 
-  uploadBuffer(buffer: Buffer, folder: string): Promise<string> {
+  uploadBuffer(buffer: Buffer, folder: string, mimeType?: string): Promise<string> {
+    const resourceType = mimeType === 'application/pdf' ? 'raw' : 'image';
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder, resource_type: 'auto' },
+        { folder, resource_type: resourceType },
         (error, result) => {
           if (error || !result) return reject(error);
           resolve(result.secure_url);

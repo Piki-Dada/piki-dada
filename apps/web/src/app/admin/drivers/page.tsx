@@ -17,6 +17,14 @@ function isImageUrl(url: string) {
   return /\.(jpe?g|png|webp)$/i.test(url);
 }
 
+// PDFs uploaded before the raw/upload fix land under image/upload — patch them so browsers can open them
+function getDocumentUrl(url: string) {
+  if (/\.pdf$/i.test(url)) {
+    return url.replace('/image/upload/', '/raw/upload/');
+  }
+  return url;
+}
+
 export default function AdminDriversPage() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
 
@@ -64,7 +72,7 @@ export default function AdminDriversPage() {
                     {d.documents.map((doc) => (
                       <a
                         key={doc.id}
-                        href={doc.fileUrl}
+                        href={getDocumentUrl(doc.fileUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
