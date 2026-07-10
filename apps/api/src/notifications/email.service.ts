@@ -17,10 +17,11 @@ export class EmailService {
   private webUrl: string;
 
   constructor(private config: ConfigService) {
+    const smtpPort = Number(this.config.get<string>('SMTP_PORT', '587'));
     this.transporter = createTransport({
       host: this.config.getOrThrow<string>('SMTP_HOST'),
-      port: this.config.get<number>('SMTP_PORT', 465),
-      secure: this.config.get<number>('SMTP_PORT', 465) === 465,
+      port: smtpPort,
+      secure: smtpPort === 465,
       auth: {
         user: this.config.getOrThrow<string>('SMTP_USER'),
         pass: this.config.getOrThrow<string>('SMTP_PASSWORD'),
