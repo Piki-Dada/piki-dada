@@ -17,15 +17,11 @@ function isImageUrl(url: string) {
   return /\.(jpe?g|png|webp)$/i.test(url);
 }
 
-function getDocumentUrl(url: string, label: string) {
-  if (/\.pdf$/i.test(url)) {
-    const filename = label.replace(/\s+/g, '_') + '.pdf';
-    if (url.includes('/image/upload/')) {
-      return url.replace('/image/upload/', `/image/upload/fl_attachment:${filename}/`);
-    }
-    if (url.includes('/raw/upload/')) {
-      return url.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
-    }
+// PDFs stored under image/upload were rendered by Cloudinary as images — request the JPEG render.
+// PDFs stored under raw/upload (new uploads) are served as-is and open directly in the browser.
+function getDocumentUrl(url: string) {
+  if (/\.pdf$/i.test(url) && url.includes('/image/upload/')) {
+    return url.replace(/\.pdf$/i, '.jpg');
   }
   return url;
 }
@@ -74,29 +70,32 @@ export default function AdminDriversPage() {
                   <p className="text-xs text-neutral-400">No documents uploaded</p>
                 ) : (
                   <div className="mt-2 flex flex-wrap gap-3">
-                    {d.documents.map((doc) => (
-                      <a
-                        key={doc.id}
-                        href={getDocumentUrl(doc.fileUrl, DOCUMENT_LABELS[doc.type])}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
-                      >
-                        {isImageUrl(doc.fileUrl) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={doc.fileUrl}
-                            alt={DOCUMENT_LABELS[doc.type]}
-                            className="h-16 w-24 rounded-md border border-neutral-200 object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-16 w-24 items-center justify-center rounded-md border border-neutral-200 text-[11px] uppercase">
-                            PDF
-                          </span>
-                        )}
-                        <span className="underline">{DOCUMENT_LABELS[doc.type]}</span>
-                      </a>
-                    ))}
+                    {d.documents.map((doc) => {
+                      const docUrl = getDocumentUrl(doc.fileUrl);
+                      return (
+                        <a
+                          key={doc.id}
+                          href={docUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
+                        >
+                          {isImageUrl(docUrl) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={docUrl}
+                              alt={DOCUMENT_LABELS[doc.type]}
+                              className="h-16 w-24 rounded-md border border-neutral-200 object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-16 w-24 items-center justify-center rounded-md border border-neutral-200 text-[11px] uppercase">
+                              PDF
+                            </span>
+                          )}
+                          <span className="underline">{DOCUMENT_LABELS[doc.type]}</span>
+                        </a>
+                      );
+                    })}
                   </div>
                 )}
               </div>
