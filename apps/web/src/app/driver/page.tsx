@@ -24,6 +24,7 @@ export default function DriverDashboardPage() {
   const [toggling, setToggling] = useState(false);
   const [incoming, setIncoming] = useState<IncomingRequest | null>(null);
   const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [onlineBlockMsg, setOnlineBlockMsg] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
   const loadProfile = useCallback(() => {
@@ -149,11 +150,25 @@ export default function DriverDashboardPage() {
           </p>
           <Button
             className="mt-4 w-full"
-            disabled={profile.approvalStatus !== "APPROVED" || toggling}
-            onClick={toggleOnline}
+            disabled={toggling}
+            onClick={() => {
+              if (profile.approvalStatus !== "APPROVED") {
+                setOnlineBlockMsg(
+                  profile.approvalStatus === "REJECTED"
+                    ? "Your application was rejected. Contact support to appeal."
+                    : "Your account is still pending admin approval. You will be able to go online once approved.",
+                );
+                return;
+              }
+              setOnlineBlockMsg(null);
+              toggleOnline();
+            }}
           >
             {profile.isOnline ? "Go offline" : "Go online"}
           </Button>
+          {onlineBlockMsg && (
+            <p className="mt-2 text-center text-xs text-yellow-700">{onlineBlockMsg}</p>
+          )}
         </CardContent>
       </Card>
 
