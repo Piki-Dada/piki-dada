@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentStatus, TripStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpsertPricingRuleDto } from './dto/upsert-pricing-rule.dto';
@@ -119,5 +119,11 @@ export class AdminService {
 
   setCouponActive(id: string, isActive: boolean) {
     return this.prisma.coupon.update({ where: { id }, data: { isActive } });
+  }
+
+  async getDocumentFile(id: string) {
+    const doc = await this.prisma.document.findUnique({ where: { id } });
+    if (!doc) throw new NotFoundException('Document not found');
+    return doc;
   }
 }

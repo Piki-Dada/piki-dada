@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUrl } from "@/lib/api";
+import { useAuthStore } from "@/lib/auth-store";
 import type { DocumentType, DriverProfile } from "@/lib/types";
 
 const DOCUMENT_LABELS: Record<DocumentType, string> = {
@@ -13,17 +14,20 @@ const DOCUMENT_LABELS: Record<DocumentType, string> = {
   INSURANCE: "Insurance",
 };
 
-function isImageUrl(url: string) {
-  return /\.(jpe?g|png|webp)$/i.test(url);
-}
-
-// PDFs stored under image/upload were rendered by Cloudinary as images — request the JPEG render.
-// PDFs stored under raw/upload (new uploads) are served as-is and open directly in the browser.
-function getDocumentUrl(url: string) {
-  if (/\.pdf$/i.test(url) && url.includes('/image/upload/')) {
-    return url.replace(/\.pdf$/i, '.jpg');
+async function openDocument(docId: string) {
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(apiUrl(`/admin/documents/${docId}`), {
+    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    alert("Could not open document. Please try again.");
+    return;
   }
-  return url;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export default function AdminDriversPage() {
@@ -70,32 +74,28 @@ export default function AdminDriversPage() {
                   <p className="text-xs text-neutral-400">No documents uploaded</p>
                 ) : (
                   <div className="mt-2 flex flex-wrap gap-3">
-                    {d.documents.map((doc) => {
-                      const docUrl = getDocumentUrl(doc.fileUrl);
-                      return (
-                        <a
-                          key={doc.id}
-                          href={docUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
-                        >
-                          {isImageUrl(docUrl) ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={docUrl}
-                              alt={DOCUMENT_LABELS[doc.type]}
-                              className="h-16 w-24 rounded-md border border-neutral-200 object-cover"
-                            />
-                          ) : (
-                            <span className="flex h-16 w-24 items-center justify-center rounded-md border border-neutral-200 text-[11px] uppercase">
-                              PDF
-                            </span>
-                          )}
-                          <span className="underline">{DOCUMENT_LABELS[doc.type]}</span>
-                        </a>
-                      );
-                    })}
+                    {d.documents.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => openDocument(doc.id)}
+                        className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
+                      >
+                        {/\.(jpe?g|png|webp)$/i.test(doc.fileUrl) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={doc.fileUrl}
+                            alt={DOCUMENT_LABELS[doc.type]}
+                            className="h-16 w-24 rounded-md border border-neutral-200 object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-16 w-24 items-center justify-center rounded-md border border-neutral-200 text-[11px] uppercase">
+                            PDF
+                          </span>
+                        )}
+                        <span className="underline">{DOCUMENT_LABELS[doc.type]}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>

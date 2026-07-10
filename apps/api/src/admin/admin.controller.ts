@@ -4,12 +4,16 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { RideType, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -126,5 +130,30 @@ export class AdminController {
   @Get('push/history')
   pushHistory() {
     return this.pushService.listBroadcastHistory();
+  }
+
+  @Get('documents/:id')
+  async proxyDocument(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const doc = await this.adminService.getDocumentFile(id);
+    const upstream = await fetch(doc.fileUrl);
+    if (!upstream.ok) throw new NotFoundException('File could not be fetched from storage');
+
+    const ext = (doc.fileUrl.match(/\.(pdf|jpe?g|png|webp)$/i)?.[1] ?? 'bin').toLowerCase();
+    const mime: Record<string, string> = {
+      pdf: 'application/pdf',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+    };
+
+    res.set('Content-Type', mime[ext] ?? 'application/octet-stream');
+    res.set('Content-Disposition', `inline; filename="${doc.type}.${ext}"`);
+    res.set('Cache-Control', 'private, max-age=3600');
+
+    return new StreamableFile(Buffer.from(await upstream.arrayBuffer()));
   }
 }
