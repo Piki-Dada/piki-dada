@@ -15,18 +15,25 @@ const DOCUMENT_LABELS: Record<DocumentType, string> = {
 };
 
 async function openDocument(docId: string) {
+  // Open the tab synchronously during the click event — browsers block window.open after an await
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert("Allow popups for this site to view documents.");
+    return;
+  }
   const token = useAuthStore.getState().accessToken;
   const res = await fetch(apiUrl(`/admin/documents/${docId}`), {
     credentials: "include",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {
-    alert("Could not open document. Please try again.");
+    win.close();
+    alert("Could not load document. Please try again.");
     return;
   }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  win.location.href = url;
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
