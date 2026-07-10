@@ -14,6 +14,7 @@ import type { DocumentType } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { Upload, CheckCircle2 } from "lucide-react";
 
 const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
   { value: "NATIONAL_ID", label: "National ID" },
@@ -207,24 +208,50 @@ export default function RegisterPage() {
                 <div className="border-t border-neutral-200 pt-4">
                   <p className="mb-3 text-sm font-semibold">Documents</p>
                   <div className="space-y-3">
-                    {DOCUMENT_TYPES.map((doc) => (
-                      <div key={doc.value} className="space-y-1.5">
-                        <Label htmlFor={doc.value}>{doc.label}</Label>
-                        <input
-                          id={doc.value}
-                          type="file"
-                          required
-                          accept="image/jpeg,image/png,image/webp,application/pdf"
-                          onChange={(e) =>
-                            setDocuments((prev) => ({
-                              ...prev,
-                              [doc.value]: e.target.files?.[0] ?? null,
-                            }))
-                          }
-                          className="block w-full text-sm"
-                        />
-                      </div>
-                    ))}
+                    {DOCUMENT_TYPES.map((doc) => {
+                      const file = documents[doc.value];
+                      return (
+                        <div key={doc.value} className="space-y-1.5">
+                          <Label htmlFor={doc.value}>{doc.label}</Label>
+                          <label
+                            htmlFor={doc.value}
+                            className={cn(
+                              "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-4 text-center transition-colors duration-150",
+                              file
+                                ? "border-green-500 bg-green-50 text-green-700"
+                                : "border-neutral-300 bg-neutral-50 text-neutral-500 hover:border-[#F4C12C] hover:bg-yellow-50 hover:text-neutral-700",
+                            )}
+                          >
+                            {file ? (
+                              <>
+                                <CheckCircle2 size={20} className="text-green-600" />
+                                <span className="max-w-full truncate text-xs font-medium">{file.name}</span>
+                                <span className="text-[11px] text-green-600">Tap to change</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={20} />
+                                <span className="text-xs font-medium">Upload {doc.label}</span>
+                                <span className="text-[11px]">JPG, PNG, PDF</span>
+                              </>
+                            )}
+                          </label>
+                          <input
+                            id={doc.value}
+                            type="file"
+                            required
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            className="sr-only"
+                            onChange={(e) =>
+                              setDocuments((prev) => ({
+                                ...prev,
+                                [doc.value]: e.target.files?.[0] ?? null,
+                              }))
+                            }
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </>
