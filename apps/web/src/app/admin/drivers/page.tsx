@@ -17,10 +17,15 @@ function isImageUrl(url: string) {
   return /\.(jpe?g|png|webp)$/i.test(url);
 }
 
-// PDFs stored under image/upload need fl_attachment so the browser downloads them instead of erroring
-function getDocumentUrl(url: string) {
-  if (/\.pdf$/i.test(url) && url.includes('/image/upload/')) {
-    return url.replace('/image/upload/', '/image/upload/fl_attachment/');
+function getDocumentUrl(url: string, label: string) {
+  if (/\.pdf$/i.test(url)) {
+    const filename = label.replace(/\s+/g, '_') + '.pdf';
+    if (url.includes('/image/upload/')) {
+      return url.replace('/image/upload/', `/image/upload/fl_attachment:${filename}/`);
+    }
+    if (url.includes('/raw/upload/')) {
+      return url.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+    }
   }
   return url;
 }
@@ -72,7 +77,7 @@ export default function AdminDriversPage() {
                     {d.documents.map((doc) => (
                       <a
                         key={doc.id}
-                        href={getDocumentUrl(doc.fileUrl)}
+                        href={getDocumentUrl(doc.fileUrl, DOCUMENT_LABELS[doc.type])}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
