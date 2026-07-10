@@ -17,10 +17,10 @@ function isImageUrl(url: string) {
   return /\.(jpe?g|png|webp)$/i.test(url);
 }
 
-// PDFs uploaded before the raw/upload fix land under image/upload — patch them so browsers can open them
+// PDFs stored under image/upload need fl_attachment so the browser downloads them instead of erroring
 function getDocumentUrl(url: string) {
-  if (/\.pdf$/i.test(url)) {
-    return url.replace('/image/upload/', '/raw/upload/');
+  if (/\.pdf$/i.test(url) && url.includes('/image/upload/')) {
+    return url.replace('/image/upload/', '/image/upload/fl_attachment/');
   }
   return url;
 }
