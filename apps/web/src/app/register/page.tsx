@@ -109,8 +109,8 @@ export default function RegisterPage() {
                 className={cn(
                   "rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150 active:scale-[0.96]",
                   role === r
-                    ? "border-[#F4C12C] bg-[#F4C12C] text-black shadow-sm"
-                    : "border-neutral-300 hover:border-[#F4C12C] hover:bg-yellow-50 hover:text-black",
+                    ? "border-[#F4C12C] bg-[#F4C12C] text-black shadow-md"
+                    : "border-neutral-300 hover:border-[#F4C12C] hover:bg-[#F4C12C] hover:text-black hover:shadow-md",
                 )}
               >
                 {r === "PASSENGER" ? "Ride" : "Drive"}
