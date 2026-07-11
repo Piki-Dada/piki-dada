@@ -14,27 +14,33 @@ const DOCUMENT_LABELS: Record<DocumentType, string> = {
   INSURANCE: "Insurance",
 };
 
-async function openDocument(docId: string) {
-  // Open the tab synchronously during the click event — browsers block window.open after an await
-  const win = window.open("", "_blank");
-  if (!win) {
-    alert("Allow popups for this site to view documents.");
-    return;
-  }
+async function downloadDocument(docId: string, docType: DocumentType) {
   const token = useAuthStore.getState().accessToken;
   const res = await fetch(apiUrl(`/admin/documents/${docId}`), {
     credentials: "include",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {
-    win.close();
     alert("Could not load document. Please try again.");
     return;
   }
   const blob = await res.blob();
+  const mimeToExt: Record<string, string> = {
+    "application/pdf": "pdf",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  const ext = mimeToExt[blob.type] ?? "jpg";
+  const filename = `${DOCUMENT_LABELS[docType].replace(/\s+/g, "_")}.${ext}`;
   const url = URL.createObjectURL(blob);
-  win.location.href = url;
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 function Spinner() {
@@ -98,7 +104,7 @@ export default function AdminDriversPage() {
                       <button
                         key={doc.id}
                         type="button"
-                        onClick={() => openDocument(doc.id)}
+                        onClick={() => downloadDocument(doc.id, doc.type)}
                         className="flex flex-col items-center gap-1 text-xs text-neutral-500 hover:text-black"
                       >
                         {/\.(jpe?g|png|webp)$/i.test(doc.fileUrl) ? (
