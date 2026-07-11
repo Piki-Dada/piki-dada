@@ -138,28 +138,33 @@ export class AdminController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const doc = await this.adminService.getDocumentFile(id);
-
-    // Try the stored URL first; if Cloudinary rejects it (old image/upload PDFs),
-    // fall back to the same URL with /image/upload/ swapped to /raw/upload/
-    let upstream = await fetch(doc.fileUrl);
-    if (!upstream.ok && doc.fileUrl.includes('/image/upload/')) {
-      const fallback = doc.fileUrl.replace('/image/upload/', '/raw/upload/');
-      upstream = await fetch(fallback);
-    }
-    if (!upstream.ok) throw new NotFoundException('File could not be fetched from storage');
-
-    const ext = (doc.fileUrl.match(/\.(pdf|jpe?g|png|webp)$/i)?.[1] ?? 'bin').toLowerCase();
-    const mime: Record<string, string> = {
-      pdf: 'application/pdf',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      webp: 'image/webp',
-    };
-
-    // Use the upstream Content-Type if present, otherwise infer from extension
-    const contentType = upstream.headers.get('content-type') ?? mime[ext] ?? 'application/octet-stream';
     const label = doc.type.toLowerCase().replace(/_/g, '-');
+
+    // Old uploads: PDF stored as Cloudinary image resource (image/upload).
+    // Requesting .pdf from the image pipeline fails. Strip the extension so
+    // Cloudinary serves the rendered image of the first page, which always works.
+    const isLegacyImagePdf =
+      /\.pdf$/i.test(doc.fileUrl) && doc.fileUrl.includes('/image/upload/');
+
+    const fetchUrl = isLegacyImagePdf
+      ? doc.fileUrl.replace(/\.pdf$/i, '')
+      : doc.fileUrl;
+
+    const upstream = await fetch(fetchUrl);
+    if (!upstream.ok) {
+      console.error(
+        `[document-proxy] Cloudinary ${upstream.status} for doc ${id}: ${fetchUrl}`,
+      );
+      throw new NotFoundException('File could not be fetched from storage');
+    }
+
+    const contentType =
+      upstream.headers.get('content-type') ??
+      (isLegacyImagePdf ? 'image/jpeg' : 'application/pdf');
+    const ext = isLegacyImagePdf
+      ? 'jpg'
+      : (doc.fileUrl.match(/\.(pdf|jpe?g|png|webp)$/i)?.[1] ?? 'bin').toLowerCase();
+
     res.set('Content-Type', contentType);
     res.set('Content-Disposition', `inline; filename="${label}.${ext}"`);
     res.set('Cache-Control', 'private, max-age=3600');
