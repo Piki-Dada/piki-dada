@@ -138,37 +138,57 @@ export class AdminController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const doc = await this.adminService.getDocumentFile(id);
-    const label = doc.type.toLowerCase().replace(/_/g, '-');
 
-    // Old uploads: PDF stored as Cloudinary image resource (image/upload).
-    // Requesting .pdf from the image pipeline fails. Strip the extension so
-    // Cloudinary serves the rendered image of the first page, which always works.
     const isLegacyImagePdf =
       /\.pdf$/i.test(doc.fileUrl) && doc.fileUrl.includes('/image/upload/');
 
-    const fetchUrl = isLegacyImagePdf
-      ? doc.fileUrl.replace(/\.pdf$/i, '')
-      : doc.fileUrl;
+    // For legacy image-pipeline PDFs, insert fl_attachment to ask Cloudinary
+    // to serve the original PDF bytes rather than a rasterised image.
+    // If that request fails, fall back to stripping the extension so Cloudinary
+    // returns a JPEG render of the first page (always available).
+    let buffer: Buffer;
+    let contentType: string;
+    let ext: string;
 
-    const upstream = await fetch(fetchUrl);
-    if (!upstream.ok) {
-      console.error(
-        `[document-proxy] Cloudinary ${upstream.status} for doc ${id}: ${fetchUrl}`,
-      );
-      throw new NotFoundException('File could not be fetched from storage');
+    if (isLegacyImagePdf) {
+      const attachUrl = doc.fileUrl.replace('/image/upload/', '/image/upload/fl_attachment/');
+      const attempt = await fetch(attachUrl);
+      if (attempt.ok && attempt.headers.get('content-type')?.includes('pdf')) {
+        buffer = Buffer.from(await attempt.arrayBuffer());
+        contentType = 'application/pdf';
+        ext = 'pdf';
+      } else {
+        // fl_attachment didn't return a PDF — fall back to JPEG render
+        const jpegUrl = doc.fileUrl.replace(/\.pdf$/i, '');
+        const fallback = await fetch(jpegUrl);
+        if (!fallback.ok) {
+          console.error(`[document-proxy] fallback ${fallback.status} for doc ${id}: ${jpegUrl}`);
+          throw new NotFoundException('File could not be fetched from storage');
+        }
+        buffer = Buffer.from(await fallback.arrayBuffer());
+        contentType = fallback.headers.get('content-type') ?? 'image/jpeg';
+        ext = 'jpg';
+      }
+    } else {
+      const upstream = await fetch(doc.fileUrl);
+      if (!upstream.ok) {
+        console.error(`[document-proxy] ${upstream.status} for doc ${id}: ${doc.fileUrl}`);
+        throw new NotFoundException('File could not be fetched from storage');
+      }
+      buffer = Buffer.from(await upstream.arrayBuffer());
+      contentType = upstream.headers.get('content-type') ?? 'application/pdf';
+      ext = (doc.fileUrl.match(/\.(pdf|jpe?g|png|webp)$/i)?.[1] ?? 'bin').toLowerCase();
     }
 
-    const contentType =
-      upstream.headers.get('content-type') ??
-      (isLegacyImagePdf ? 'image/jpeg' : 'application/pdf');
-    const ext = isLegacyImagePdf
-      ? 'jpg'
-      : (doc.fileUrl.match(/\.(pdf|jpe?g|png|webp)$/i)?.[1] ?? 'bin').toLowerCase();
+    const label = doc.type
+      .split('_')
+      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join('_');
 
     res.set('Content-Type', contentType);
     res.set('Content-Disposition', `inline; filename="${label}.${ext}"`);
     res.set('Cache-Control', 'private, max-age=3600');
 
-    return new StreamableFile(Buffer.from(await upstream.arrayBuffer()));
+    return new StreamableFile(buffer);
   }
 }
