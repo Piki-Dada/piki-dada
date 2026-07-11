@@ -138,7 +138,14 @@ export class AdminController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const doc = await this.adminService.getDocumentFile(id);
-    const upstream = await fetch(doc.fileUrl);
+
+    // Try the stored URL first; if Cloudinary rejects it (old image/upload PDFs),
+    // fall back to the same URL with /image/upload/ swapped to /raw/upload/
+    let upstream = await fetch(doc.fileUrl);
+    if (!upstream.ok && doc.fileUrl.includes('/image/upload/')) {
+      const fallback = doc.fileUrl.replace('/image/upload/', '/raw/upload/');
+      upstream = await fetch(fallback);
+    }
     if (!upstream.ok) throw new NotFoundException('File could not be fetched from storage');
 
     const ext = (doc.fileUrl.match(/\.(pdf|jpe?g|png|webp)$/i)?.[1] ?? 'bin').toLowerCase();
@@ -150,8 +157,11 @@ export class AdminController {
       webp: 'image/webp',
     };
 
-    res.set('Content-Type', mime[ext] ?? 'application/octet-stream');
-    res.set('Content-Disposition', `inline; filename="${doc.type}.${ext}"`);
+    // Use the upstream Content-Type if present, otherwise infer from extension
+    const contentType = upstream.headers.get('content-type') ?? mime[ext] ?? 'application/octet-stream';
+    const label = doc.type.toLowerCase().replace(/_/g, '-');
+    res.set('Content-Type', contentType);
+    res.set('Content-Disposition', `inline; filename="${label}.${ext}"`);
     res.set('Cache-Control', 'private, max-age=3600');
 
     return new StreamableFile(Buffer.from(await upstream.arrayBuffer()));

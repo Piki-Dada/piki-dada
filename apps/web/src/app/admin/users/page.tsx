@@ -14,11 +14,24 @@ interface AdminUser {
   emailVerifiedAt: string | null;
 }
 
+function Spinner() {
+  return (
+    <div className="flex items-center gap-2 py-8 text-neutral-400">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
+      <span className="text-sm">Loading...</span>
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
 
   function load() {
-    apiFetch<AdminUser[]>("/admin/users").then(setUsers);
+    setLoading(true);
+    apiFetch<AdminUser[]>("/admin/users")
+      .then(setUsers)
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -64,7 +77,11 @@ export default function AdminUsersPage() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">Users</h1>
       <div className="space-y-2">
-        {users.map((u) => (
+        {loading ? (
+          <Spinner />
+        ) : users.length === 0 ? (
+          <p className="text-neutral-400">No users found.</p>
+        ) : users.map((u) => (
           <Card key={u.id}>
             <CardContent className="flex items-center justify-between pt-4">
               <div>
@@ -105,3 +122,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+

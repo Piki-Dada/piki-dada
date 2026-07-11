@@ -37,11 +37,24 @@ async function openDocument(docId: string) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+function Spinner() {
+  return (
+    <div className="flex items-center gap-2 py-8 text-neutral-400">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
+      <span className="text-sm">Loading...</span>
+    </div>
+  );
+}
+
 export default function AdminDriversPage() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
+  const [loading, setLoading] = useState(true);
 
   function load() {
-    apiFetch<DriverProfile[]>("/drivers/pending").then(setDrivers);
+    setLoading(true);
+    apiFetch<DriverProfile[]>("/drivers/pending")
+      .then(setDrivers)
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -62,7 +75,7 @@ export default function AdminDriversPage() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">Pending driver approvals</h1>
       <div className="space-y-3">
-        {drivers.length === 0 && <p className="text-neutral-400">No pending drivers.</p>}
+        {loading ? <Spinner /> : drivers.length === 0 && <p className="text-neutral-400">No pending drivers.</p>}
         {drivers.map((d) => (
           <Card key={d.id}>
             <CardContent className="flex items-center justify-between pt-4">

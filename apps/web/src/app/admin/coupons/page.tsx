@@ -17,15 +17,28 @@ interface Coupon {
   isActive: boolean;
 }
 
+function Spinner() {
+  return (
+    <div className="flex items-center gap-2 py-8 text-neutral-400">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
+      <span className="text-sm">Loading...</span>
+    </div>
+  );
+}
+
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
   const [code, setCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [discountPercent, setDiscountPercent] = useState("");
   const [maxUses, setMaxUses] = useState("");
 
   function load() {
-    apiFetch<Coupon[]>("/admin/coupons").then(setCoupons);
+    setLoading(true);
+    apiFetch<Coupon[]>("/admin/coupons")
+      .then(setCoupons)
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -97,7 +110,11 @@ export default function AdminCouponsPage() {
         </Card>
 
         <div className="space-y-2 lg:col-span-2">
-          {coupons.map((c) => (
+          {loading ? (
+            <Spinner />
+          ) : coupons.length === 0 ? (
+            <p className="py-8 text-neutral-400">No coupons yet.</p>
+          ) : coupons.map((c) => (
             <Card key={c.id}>
               <CardContent className="flex items-center justify-between pt-4">
                 <div>

@@ -16,7 +16,7 @@ export class UploadsService {
     const resourceType = mimeType === 'application/pdf' ? 'raw' : 'image';
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder, resource_type: resourceType },
+        { folder, resource_type: resourceType, use_filename: true, unique_filename: true },
         (error, result) => {
           if (error || !result) return reject(error);
           resolve(result.secure_url);

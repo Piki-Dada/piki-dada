@@ -17,18 +17,34 @@ interface AdminTrip {
   driver: { user: { name: string } } | null;
 }
 
+function Spinner() {
+  return (
+    <div className="flex items-center gap-2 py-8 text-neutral-400">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
+      <span className="text-sm">Loading...</span>
+    </div>
+  );
+}
+
 export default function AdminTripsPage() {
   const [trips, setTrips] = useState<AdminTrip[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch<AdminTrip[]>("/admin/trips").then(setTrips);
+    apiFetch<AdminTrip[]>("/admin/trips")
+      .then(setTrips)
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Ride monitor</h1>
       <div className="space-y-2">
-        {trips.map((t) => (
+        {loading ? (
+          <Spinner />
+        ) : trips.length === 0 ? (
+          <p className="text-neutral-400">No rides yet.</p>
+        ) : trips.map((t) => (
           <Card key={t.id}>
             <CardContent className="flex items-center justify-between pt-4 text-sm">
               <div>
