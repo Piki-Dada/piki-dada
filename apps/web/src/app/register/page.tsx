@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore, type UserRole } from "@/lib/auth-store";
-import { redirectForRole } from "@/lib/auth-helpers";
 import type { DocumentType } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
@@ -25,7 +24,7 @@ const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const setSession = useAuthStore((s) => s.setSession);
+  const { setSession, clearSession } = useAuthStore((s) => ({ setSession: s.setSession, clearSession: s.clearSession }));
   const [role, setRole] = useState<UserRole>("PASSENGER");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -84,7 +83,11 @@ export default function RegisterPage() {
         }
       }
 
-      redirectForRole(data.user.role, router);
+      // Registration done. Clear the session so the user must verify their
+      // email and log in properly — prevents bypassing verification via the
+      // token issued during registration.
+      clearSession();
+      router.push(`/verify-email/sent?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
