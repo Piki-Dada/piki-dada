@@ -128,8 +128,8 @@ export default function PassengerBookingPage() {
                   type="button"
                   onClick={() => setServiceLabel(rt.label)}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-xl border py-3 text-sm",
-                    serviceLabel === rt.label ? "border-black bg-black text-white" : "border-neutral-300",
+                    "flex flex-col items-center gap-1 rounded-xl border py-3 text-sm transition-all duration-150 hover:scale-[1.08] active:scale-[0.92]",
+                    serviceLabel === rt.label ? "border-black bg-black text-white" : "border-neutral-300 hover:border-[#F4C12C] hover:bg-yellow-50",
                   )}
                 >
                   <span className="text-xl">{rt.emoji}</span>
@@ -148,8 +148,8 @@ export default function PassengerBookingPage() {
                   type="button"
                   onClick={() => setPaymentMethod(pm.value)}
                   className={cn(
-                    "rounded-xl border py-2 text-xs font-medium",
-                    paymentMethod === pm.value ? "border-black bg-black text-white" : "border-neutral-300",
+                    "rounded-xl border py-2 text-xs font-medium transition-all duration-150 hover:scale-[1.08] active:scale-[0.92]",
+                    paymentMethod === pm.value ? "border-black bg-black text-white" : "border-neutral-300 hover:border-[#F4C12C] hover:bg-yellow-50",
                   )}
                 >
                   {pm.label}

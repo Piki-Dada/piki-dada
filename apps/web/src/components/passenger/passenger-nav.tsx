@@ -40,7 +40,7 @@ export function PassengerNav() {
           clearSession();
           router.push("/login");
         }}
-        className="flex flex-col items-center gap-1 px-4 py-1 text-xs text-neutral-400"
+        className="flex flex-col items-center gap-1 px-4 py-1 text-xs text-neutral-400 transition-all duration-150 hover:scale-[1.08] active:scale-[0.92] hover:text-neutral-700"
       >
         Logout
       </button>
