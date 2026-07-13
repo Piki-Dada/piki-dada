@@ -135,9 +135,8 @@ export default function PassengerBookingPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-2 text-sm">
-            <span className="text-neutral-500">Payment</span>
-            <span className="font-medium">Cash</span>
+          <div className="rounded-xl border border-neutral-200 px-4 py-2 text-center text-sm font-medium">
+            Payment - Cash
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
