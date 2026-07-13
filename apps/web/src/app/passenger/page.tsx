@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { LatLng, PaymentMethod, RideType, Trip } from "@/lib/types";
+import type { LatLng, RideType, Trip } from "@/lib/types";
 import { PassengerNav } from "@/components/passenger/passenger-nav";
 
 const RIDE_TYPES: { value: RideType; label: string; emoji: string }[] = [
@@ -16,9 +16,6 @@ const RIDE_TYPES: { value: RideType; label: string; emoji: string }[] = [
   { value: "BODA", label: "Package Delivery", emoji: "📦" },
 ];
 
-const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "CASH", label: "Cash" },
-];
 
 export default function PassengerBookingPage() {
   const router = useRouter();
@@ -28,7 +25,6 @@ export default function PassengerBookingPage() {
   const [destination, setDestination] = useState<LatLng | undefined>();
   const rideType: RideType = "BODA";
   const [serviceLabel, setServiceLabel] = useState(RIDE_TYPES[0].label);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -70,7 +66,7 @@ export default function PassengerBookingPage() {
           destinationLng: destination.lng,
           destinationAddress,
           rideType,
-          paymentMethod,
+          paymentMethod: "CASH",
         }),
       });
       router.push(`/passenger/trip/${trip.id}`);
@@ -139,23 +135,9 @@ export default function PassengerBookingPage() {
             </div>
           </div>
 
-          <div>
-            <p className="mb-2 text-sm font-medium text-neutral-600">Payment</p>
-            <div className="grid grid-cols-1 gap-2">
-              {PAYMENT_METHODS.map((pm) => (
-                <button
-                  key={pm.value}
-                  type="button"
-                  onClick={() => setPaymentMethod(pm.value)}
-                  className={cn(
-                    "rounded-xl border py-2 text-xs font-medium transition-all duration-150 hover:scale-[1.08] active:scale-[0.92]",
-                    paymentMethod === pm.value ? "border-black bg-black text-white" : "border-neutral-300 hover:border-[#F4C12C] hover:bg-yellow-50",
-                  )}
-                >
-                  {pm.label}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-2 text-sm">
+            <span className="text-neutral-500">Payment</span>
+            <span className="font-medium">Cash</span>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
