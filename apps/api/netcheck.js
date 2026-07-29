@@ -71,7 +71,6 @@ function testDns(host) {
       });
 }
 
-async function main() {
 
             function buildStartupMessage(user, database) {
                     const params = Buffer.concat([
