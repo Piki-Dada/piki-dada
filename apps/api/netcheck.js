@@ -72,12 +72,83 @@ function testDns(host) {
 }
 
 async function main() {
+
+            function buildStartupMessage(user, database) {
+                    const params = Buffer.concat([
+                              Buffer.from('user\0', 'utf8'), Buffer.from(user + '\0', 'utf8'),
+                              Buffer.from('database\0', 'utf8'), Buffer.from(database + '\0', 'utf8'),
+                              Buffer.from([0])
+                            ]);
+                    const length = 4 + 4 + params.length;
+                    const header = Buffer.alloc(8);
+                    header.writeInt32BE(length, 0);
+                    header.writeInt32BE(196608, 4);
+                    return Buffer.concat([header, params]);
+            }
+
+      function testPostgresHandshake(host, port, label, user, database) {
+              const tls = require('tls');
+              return new Promise((resolve) => {
+                        const start = Date.now();
+                        let stage = 'connecting';
+                        const socket = net.createConnection({ host, port });
+                        socket.setTimeout(8000);
+                        socket.on('connect', () => {
+                                    stage = 'ssl-request';
+                                    const sslReq = Buffer.alloc(8);
+                                    sslReq.writeInt32BE(8, 0);
+                                    sslReq.writeInt32BE(80877103, 4);
+                                    socket.write(sslReq);
+                        });
+                        socket.once('data', (data) => {
+                                    const resp = data.toString('latin1');
+                                    console.log('[NETCHECK-PG] ' + label + ' SSL response: ' + JSON.stringify(resp) + ' at ' + (Date.now() - start) + 'ms');
+                                    if (resp[0] !== 'S') {
+                                                  socket.destroy();
+                                                  return resolve();
+                                    }
+                                    stage = 'tls-handshake';
+                                    const tlsSocket = tls.connect({ socket, servername: host, rejectUnauthorized: false }, () => {
+                                                  console.log('[NETCHECK-PG] ' + label + ' TLS handshake complete at ' + (Date.now() - start) + 'ms');
+                                                  stage = 'startup-message';
+                                                  tlsSocket.write(buildStartupMessage(user, database));
+                                    });
+                                    tlsSocket.setTimeout(8000);
+                                    tlsSocket.on('data', (d) => {
+                                                  console.log('[NETCHECK-PG] ' + label + ' response after startup: type=' + JSON.stringify(String.fromCharCode(d[0])) + ' len=' + d.length + ' hex=' + d.slice(0, 24).toString('hex') + ' at ' + (Date.now() - start) + 'ms');
+                                                  tlsSocket.destroy();
+                                                  resolve();
+                                    });
+                                    tlsSocket.on('timeout', () => {
+                                                  console.log('[NETCHECK-PG] ' + label + ' TIMEOUT at stage=' + stage + ' after ' + (Date.now() - start) + 'ms');
+                                                  tlsSocket.destroy();
+                                                  resolve();
+                                    });
+                                    tlsSocket.on('error', (err) => {
+                                                  console.log('[NETCHECK-PG] ' + label + ' TLS ERROR at stage=' + stage + ': ' + err.message + ' after ' + (Date.now() - start) + 'ms');
+                                                  resolve();
+                                    });
+                        });
+                        socket.on('timeout', () => {
+                                    console.log('[NETCHECK-PG] ' + label + ' TIMEOUT at stage=' + stage + ' after ' + (Date.now() - start) + 'ms');
+                                    socket.destroy();
+                                    resolve();
+                        });
+                        socket.on('error', (err) => {
+                                    console.log('[NETCHECK-PG] ' + label + ' ERROR at stage=' + stage + ': ' + err.message);
+                                    resolve();
+                        });
+              });
+      }
+async function main() {
       console.log('[NETCHECK] Starting network diagnostics...');
       await testDns('aws-0-eu-west-1.pooler.supabase.com');
       await testConnect('aws-0-eu-west-1.pooler.supabase.com', 6543, 'transaction-pooler');
       await testConnect('aws-0-eu-west-1.pooler.supabase.com', 5432, 'session-pooler');
       await testSslNegotiation('aws-0-eu-west-1.pooler.supabase.com', 6543, 'ssl-transaction-pooler');
       await testSslNegotiation('aws-0-eu-west-1.pooler.supabase.com', 5432, 'ssl-session-pooler');
+      await testPostgresHandshake('aws-0-eu-west-1.pooler.supabase.com', 6543, 'pg-transaction-pooler', 'postgres.nwdchqvouuoohienaeoh', 'postgres');
+      await testPostgresHandshake('aws-0-eu-west-1.pooler.supabase.com', 5432, 'pg-session-pooler', 'postgres.nwdchqvouuoohienaeoh', 'postgres');
       console.log('[NETCHECK] Diagnostics complete.');
       process.exit(0);
 }
