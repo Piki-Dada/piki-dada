@@ -1,5 +1,6 @@
 FROM node:22-slim AS base
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN echo "precedence ::ffff:0:0/96 100" >> /etc/gai.conf
 RUN corepack enable
 WORKDIR /app
 
