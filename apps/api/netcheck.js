@@ -148,6 +148,9 @@ async function main() {
       await testSslNegotiation('aws-0-eu-west-1.pooler.supabase.com', 5432, 'ssl-session-pooler');
       await testPostgresHandshake('aws-0-eu-west-1.pooler.supabase.com', 6543, 'pg-transaction-pooler', 'postgres.nwdchqvouuoohienaeoh', 'postgres');
       await testPostgresHandshake('aws-0-eu-west-1.pooler.supabase.com', 5432, 'pg-session-pooler', 'postgres.nwdchqvouuoohienaeoh', 'postgres');
+      await testConnect('binaries.prisma.sh', 443, 'prisma-binaries-cdn');
+      await testConnect('registry.npmjs.org', 443, 'npm-registry-sanity');
+      await testConnect('objects.githubusercontent.com', 443, 'github-objects-sanity');
       console.log('[NETCHECK] Diagnostics complete.');
       process.exit(0);
 }
